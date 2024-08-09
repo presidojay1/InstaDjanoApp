@@ -42,6 +42,16 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
 ]
+
+PAYSTACK_SECRET_KEY = 'sk_test_bb84b6d12be4b1ca44efefd634654e2626b6debd'
+PAYSTACK_PUBLIC_KEY = 'pk_test_be7a8d8841188ab84607ebb887e71bc1ab20a59c'
+
+PAYSTACK_PLAN_IDS = {
+    'basic': 'PLN_qoinuna3fcldmzh',   # Replace with the actual Paystack ID for the $5/month plan
+    'medium': 'PLN_b8wehr0xl0189ga',  # Replace with the actual Paystack ID for the $10/month plan
+    'premium': 'PLN_mfylg9uweyq0zf5', # Replace with the actual Paystack ID for the $20/month plan
+}
+
 REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
-from ..models import Profile
+from ..models import *
 UserModel = get_user_model()
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -31,7 +31,34 @@ class UserSerializer(serializers.ModelSerializer):
         model = UserModel
         fields = ('email', 'username')
 
+class PaymentHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentHistory
+        fields = '__all__'
+
+class InstagramAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstagramAccount
+        fields = ('username', 'password')
+
 class ProfileSerializer(serializers.ModelSerializer):
+    username = serializers.ReadOnlyField(source='user.username')
+    user_id = serializers.ReadOnlyField(source='user.id')
+    payment_history = PaymentHistorySerializer(many=True, read_only=True)
+    instagram_accounts = InstagramAccountSerializer(many=True, read_only=True)
+
     class Meta:
         model = Profile
-        fields = ('age', 'has_confirmed_otp', 'number_of_ig_accounts', 'height')
+        fields = [
+            'username',
+            'user_id',
+            'age',
+            'has_confirmed_otp',
+            'number_of_ig_accounts',
+            'height',
+            'paystack_customer_id',
+            'subscription_plan',
+            'subscription_end_date',
+            'subscription_is_valid',
+            'payment_history', 'instagram_accounts'
+        ]

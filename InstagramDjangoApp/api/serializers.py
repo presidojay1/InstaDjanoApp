@@ -56,7 +56,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'has_confirmed_otp',
             'number_of_ig_accounts',
             'height',
-            'paystack_customer_id',
+            'stripe_customer_id',
             'subscription_plan',
             'subscription_end_date',
             'subscription_is_valid',

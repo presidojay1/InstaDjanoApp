@@ -43,15 +43,13 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-PAYSTACK_SECRET_KEY = 'sk_test_bb84b6d12be4b1ca44efefd634654e2626b6debd'
-PAYSTACK_PUBLIC_KEY = 'pk_test_be7a8d8841188ab84607ebb887e71bc1ab20a59c'
-
-PAYSTACK_PLAN_IDS = {
-    'basic': 'PLN_qoinuna3fcldmzh',   # Replace with the actual Paystack ID for the $5/month plan
-    'medium': 'PLN_b8wehr0xl0189ga',  # Replace with the actual Paystack ID for the $10/month plan
-    'premium': 'PLN_mfylg9uweyq0zf5', # Replace with the actual Paystack ID for the $20/month plan
+STRIPE_SECRET_KEY = "sk_test_51PfoFIGdWNCS6S2AxrbzhTVpVj48M6K93ckImG65Kv22bwXsKdtMPiMeQrwkC1Y1dzpR3mbDVQBAnhhtrCh51LKi00pDplQCBo"
+STRIPE_WEBHOOK_SECRET = 'we_1PnhsbGdWNCS6S2AeI6oJask'
+STRIPE_PLAN_IDS = {
+    'basic': 'price_1PniXeGdWNCS6S2ANAsPtGrA',
+    'medium': 'price_1PniD3GdWNCS6S2A3jRkGUBp',
+    'premium': 'price_1PniDuGdWNCS6S2AhT49vOd7',
 }
-
 REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (

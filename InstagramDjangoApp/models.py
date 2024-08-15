@@ -10,9 +10,8 @@ class Profile(models.Model):
     age = models.IntegerField(null=True, blank=True)
     has_confirmed_otp = models.BooleanField(default=False)
     number_of_ig_accounts = models.PositiveIntegerField(default=0)
-    height = models.FloatField(null=True, blank=True)
-    
-    paystack_customer_id = models.CharField(max_length=255, null=True, blank=True)
+    height = models.FloatField(null=True, blank=True) 
+    stripe_customer_id = models.CharField(max_length=255, null=True, blank=True)
     subscription_plan = models.CharField(max_length=50, choices=[('basic', 'Basic'), ('medium', 'Medium'), ('premium', 'Premium'), ('unsubscribed', 'Unsubscribed')], null=True, blank=True, default='unsubscribed')
     subscription_end_date = models.DateField(null=True, blank=True)
 

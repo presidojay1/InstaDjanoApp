@@ -28,10 +28,11 @@ import datetime
 import requests
 from decimal import Decimal, InvalidOperation
 
+import stripe
 
 
 
-paystack = Paystack(secret_key=settings.PAYSTACK_SECRET_KEY)
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 UserModel = get_user_model()
 
@@ -185,20 +186,46 @@ def subscribe_to_plan(request):
 
     profile = user.profile
 
-    plan_id = settings.PAYSTACK_PLAN_IDS[plan]
-    response = create_paystack_subscription(user.email, plan_id)
-
-    plan_details_response = get_plan_details(plan_id)
-    plan_details = plan_details_response['data']
     try:
-        amount = Decimal(plan_details['amount'])  # Convert to Decimal
-    except (KeyError, InvalidOperation):
-        return Response({'error': 'Invalid plan amount'}, status=400)
+        # Retrieve Stripe plan details
+        stripe_plan = stripe.Plan.retrieve(settings.STRIPE_PLAN_IDS[plan])
+        amount = Decimal(stripe_plan['amount']) / 100  # Convert from cents to dollars
 
-    # Convert amount to kobo if necessary (Paystack uses kobo)
-    amount_in_kobo = int(amount * 100)
+        # Create a Stripe customer if not already created
+        if not profile.stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=user.email,
+                name=user.username,
+            )
+            profile.stripe_customer_id = customer.id
+            profile.save()
+        else:
+            customer = stripe.Customer.retrieve(profile.stripe_customer_id)
 
-    if response['status']:  # Check if the transaction was initialized successfully
+        # Use a test token to create a PaymentMethod
+        payment_method = stripe.PaymentMethod.create(
+            type="card",
+            card={
+                "token": "tok_visa",  # Use a Stripe-provided test token for Visa
+            },
+        )
+        stripe.PaymentMethod.attach(payment_method.id, customer=customer.id)
+
+        # Set the default payment method for the customer
+        stripe.Customer.modify(
+            customer.id,
+            invoice_settings={
+                'default_payment_method': payment_method.id,
+            },
+        )
+
+        # Create a subscription
+        subscription = stripe.Subscription.create(
+            customer=customer.id,
+            items=[{'plan': settings.STRIPE_PLAN_IDS[plan]}],
+            default_payment_method=payment_method.id,  # Set the test payment method as default
+        )
+
         # Update the user's subscription plan and end date
         profile.subscription_plan = plan
         profile.subscription_end_date = datetime.date.today() + datetime.timedelta(days=30)
@@ -206,15 +233,15 @@ def subscribe_to_plan(request):
 
         PaymentHistory.objects.create(
             profile=profile,
-            amount=amount,  # Convert amount back to naira
+            amount=amount,
             description=f'{plan.capitalize()} Plan Subscription',
-            reference=response['data']['reference'],  # Save the transaction reference
+            reference=subscription['id'],  # Save the subscription ID as a reference
         )
 
-        return Response({'status': 'Subscription successful', 'authorization_url': response['data']['authorization_url']}, status=201)
-    else:
-        return Response({'status': 'Subscription failed', 'message': response['message']}, status=400)
+        return Response({'status': 'Subscription successful', 'subscription_id': subscription['id']}, status=201)
 
+    except stripe.error.StripeError as e:
+        return Response({'status': 'Subscription failed', 'message': str(e)}, status=400)
 
 @api_view(['POST'])
 def add_instagram_account(request):
@@ -276,50 +303,63 @@ def payment_history_by_reference(request,reference):
 
 
 @csrf_exempt
-def paystack_webhook(request):
-    event = json.loads(request.body.decode('utf-8'))
-    
-    if event['event'] == 'subscription.create':
-        transaction = event['data']['transaction']
-        email = transaction['customer']['email']
-        profile = Profile.objects.get(user__email=email)
-        
-        # Update the user profile and payment history
-        profile.subscription_plan = 'subscribed'
-        profile.save()
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
 
-        # Amount in kobo; convert to naira
-        amount = transaction['amount'] / 100
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        # Invalid payload
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError:
+        # Invalid signature
+        return JsonResponse({'error': 'Invalid signature'}, status=400)
+
+    # Handle the event
+    if event['type'] == 'invoice.payment_succeeded':
+        invoice = event['data']['object']
+        customer_id = invoice['customer']
+        subscription_id = invoice['subscription']
+        amount_paid = Decimal(invoice['amount_paid']) / 100  # Convert from cents to dollars
+
+        profile = Profile.objects.get(stripe_customer_id=customer_id)
+
+        # Update the user's profile
+        profile.subscription_plan = 'subscribed'  # You might want to handle specific plan names
+        profile.save()
 
         PaymentHistory.objects.create(
             profile=profile,
-            amount=amount,  # Convert from kobo to naira
+            amount=amount_paid,
             description=f'{profile.subscription_plan.capitalize()} Plan Subscription',
-            reference=transaction['reference']
+            reference=subscription_id,
         )
 
     return JsonResponse({'status': 'success'})
 
-
-def create_paystack_subscription(email, plan_id):
-    # Retrieve plan details from Paystack
-    plan_details_response = get_plan_details(plan_id)
-    if not plan_details_response['status']:
-        raise Exception('Failed to retrieve plan details')
+# def create_paystack_subscription(email, plan_id):
+#     # Retrieve plan details from Paystack
+#     plan_details_response = get_plan_details(plan_id)
+#     if not plan_details_response['status']:
+#         raise Exception('Failed to retrieve plan details')
     
-    plan_details = plan_details_response['data']
-    try:
-        amount = Decimal(plan_details['amount'])  # Convert to Decimal
-    except (KeyError, InvalidOperation):
-        return Response({'error': 'Invalid plan amount'}, status=400)
+#     plan_details = plan_details_response['data']
+#     try:
+#         amount = Decimal(plan_details['amount'])  # Convert to Decimal
+#     except (KeyError, InvalidOperation):
+#         return Response({'error': 'Invalid plan amount'}, status=400)
 
-    # Convert amount to kobo if necessary (Paystack uses kobo)
-    amount_in_kobo = int(amount * 100)
+#     # Convert amount to kobo if necessary (Paystack uses kobo)
+#     amount_in_kobo = int(amount * 100)
 
-    response = paystack.transaction.initialize(
-        reference=str(uuid.uuid4()),  # Unique transaction reference
-        amount=amount_in_kobo,  # Amount in kobo
-        email=email,
-        plan=plan_id
-    )
-    return response
+#     response = paystack.transaction.initialize(
+#         reference=str(uuid.uuid4()),  # Unique transaction reference
+#         amount=amount_in_kobo,  # Amount in kobo
+#         email=email,
+#         plan=plan_id
+#     )
+#     return response

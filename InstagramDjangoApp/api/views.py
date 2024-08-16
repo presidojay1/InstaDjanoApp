@@ -183,7 +183,7 @@ def get_plan_details(plan_id):
 def subscribe_to_plan(request):
     user = UserModel.objects.get(id=request.data.get('user_id'))
     plan = request.data.get('plan')
-
+    payment_method_id = request.data.get('payment_method_id')
     profile = user.profile
 
     try:
@@ -203,12 +203,12 @@ def subscribe_to_plan(request):
             customer = stripe.Customer.retrieve(profile.stripe_customer_id)
 
         # Use a test token to create a PaymentMethod
-        payment_method = stripe.PaymentMethod.create(
-            type="card",
-            card={
-                "token": "tok_visa",  # Use a Stripe-provided test token for Visa
-            },
-        )
+        # payment_method = stripe.PaymentMethod.create(
+        #     type="card",
+        #     card={
+        #         "token": "tok_visa",  # Use a Stripe-provided test token for Visa
+        #     },
+        # )
         stripe.PaymentMethod.attach(payment_method.id, customer=customer.id)
 
         # Set the default payment method for the customer

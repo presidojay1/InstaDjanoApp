@@ -209,13 +209,13 @@ def subscribe_to_plan(request):
         #         "token": "tok_visa",  # Use a Stripe-provided test token for Visa
         #     },
         # )
-        stripe.PaymentMethod.attach(payment_method.id, customer=customer.id)
+        stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
 
         # Set the default payment method for the customer
         stripe.Customer.modify(
             customer.id,
             invoice_settings={
-                'default_payment_method': payment_method.id,
+                'default_payment_method': payment_method_id,
             },
         )
 
@@ -223,7 +223,7 @@ def subscribe_to_plan(request):
         subscription = stripe.Subscription.create(
             customer=customer.id,
             items=[{'plan': settings.STRIPE_PLAN_IDS[plan]}],
-            default_payment_method=payment_method.id,  # Set the test payment method as default
+            default_payment_method=payment_method_id  # Set the test payment method as default
         )
 
         # Update the user's subscription plan and end date

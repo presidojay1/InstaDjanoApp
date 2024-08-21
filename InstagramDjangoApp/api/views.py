@@ -29,7 +29,7 @@ import requests
 from decimal import Decimal, InvalidOperation
 
 import stripe
-
+from instagrapi import Client
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -341,25 +341,46 @@ def stripe_webhook(request):
 
     return JsonResponse({'status': 'success'})
 
-# def create_paystack_subscription(email, plan_id):
-#     # Retrieve plan details from Paystack
-#     plan_details_response = get_plan_details(plan_id)
-#     if not plan_details_response['status']:
-#         raise Exception('Failed to retrieve plan details')
+
+@api_view(['POST'])
+def manage_instagram_accounts(request):
+    user = UserModel.objects.get(id=request.data.get('user_id'))
+    profile = user.profile
+    instagram_accounts = InstagramAccount.objects.filter(profile=profile)
     
-#     plan_details = plan_details_response['data']
-#     try:
-#         amount = Decimal(plan_details['amount'])  # Convert to Decimal
-#     except (KeyError, InvalidOperation):
-#         return Response({'error': 'Invalid plan amount'}, status=400)
+    response = {"success": [], "failed": []}
 
-#     # Convert amount to kobo if necessary (Paystack uses kobo)
-#     amount_in_kobo = int(amount * 100)
+    for account in instagram_accounts:
+        cl = Client()
+        try:
+            cl.login(account.username, account.password)
+            
+            # Get account info
+            account_info = cl.account_info()
+            bio = account_info.biography
 
-#     response = paystack.transaction.initialize(
-#         reference=str(uuid.uuid4()),  # Unique transaction reference
-#         amount=amount_in_kobo,  # Amount in kobo
-#         email=email,
-#         plan=plan_id
-#     )
-#     return response
+            # Define the link to be added
+            link_to_add = "http://127.0.0.1:8000/api/profile/1/"
+            
+            # Check if the bio contains a link
+            if link_to_add in bio:
+                # Remove the existing link
+                new_bio = bio.replace(link_to_add, "")
+                if cl.account_edit(biography=new_bio):
+                    response["success"].append(f"{account.username} removed link from bio")
+                else:
+                    response["failed"].append(f"{account.username} could not remove link from bio")
+            else:
+                # Add the new link to the bio
+                new_bio = f"{bio} {link_to_add}"
+                if cl.account_edit(biography=new_bio):
+                    response["success"].append(f"{account.username} added link to bio")
+                else:
+                    response["failed"].append(f"{account.username} could not add link to bio")
+            
+            cl.logout()
+        except Exception as e:
+            response["failed"].append(f"{account.username} failed with error: {str(e)}")
+    
+    return JsonResponse(response)
+

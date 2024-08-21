@@ -28,6 +28,14 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+
+CELERY_BROKER_URL = 'memory://'
+CELERY_RESULT_BACKEND = 'memory://'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -41,6 +49,7 @@ INSTALLED_APPS = [
     "rest_framework",
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_celery_beat',
 ]
 
 STRIPE_SECRET_KEY = "sk_test_51PfoFIGdWNCS6S2AxrbzhTVpVj48M6K93ckImG65Kv22bwXsKdtMPiMeQrwkC1Y1dzpR3mbDVQBAnhhtrCh51LKi00pDplQCBo"

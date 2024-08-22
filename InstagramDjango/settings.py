@@ -27,11 +27,26 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# settings.py
+
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'perform-instagram-tasks-every-30-minutes': {
+        'task': 'InstagramDjangoApp.tasks.perform_instagram_tasks',  # Ensure this is correct
+        'schedule': crontab(minute='*/30'),  # Every 30 minutes
+    },
+}
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_IMPORTS = ['InstagramDjangoApp.tasks']
 
 
-CELERY_BROKER_URL = 'memory://'
-CELERY_RESULT_BACKEND = 'memory://'
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# CELERY_BROKER_URL = 'memory://'
+# CELERY_RESULT_BACKEND = 'memory://'
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 
 

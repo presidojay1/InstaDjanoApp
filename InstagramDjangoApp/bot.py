@@ -19,7 +19,7 @@ INSTAGRAM_LOGIN_URL = "https://www.instagram.com/"
 INSTAGRAM_STORY_URL = "https://www.instagram.com/stories/"
 SCROLL_PAUSE_TIME = 10 
 HOURLY_STORY_LIKE =  100 # 30 stories per hour
-HOURLY_POST_LIKE = 31
+HOURLY_POST_LIKE =  5 #31
 DAILY_POST_LIKE = 200
 DAILY_STORY_LIKE = 1000
 DAILY_FOLLOW = 150
@@ -59,7 +59,7 @@ class Bot:
         chrome_options.add_argument('--log-level=3')
         self.browser = webdriver.Chrome(options=chrome_options)
         
-        self.login()
+        # self.login()
 
     def challenge(self):
         """
@@ -87,7 +87,7 @@ class Bot:
     def login(self):
         # Log into an IG account
         self.browser.get(INSTAGRAM_LOGIN_URL)
-        print("->oya print")
+        print("->oya print", self.username)
         # Finding and filling username and password fields
         self.browser.find_element(By.NAME, 'username').send_keys(self.username)
         self.browser.find_element(By.NAME, 'password').send_keys(self.password)
@@ -203,6 +203,7 @@ class Bot:
             for button in like_buttons:
                 try:
                     self.browser.execute_script("arguments[0].click();", button)
+                    # WebDriverWait(self.browser, 10).until(EC.element_to_be_clickable((By.XPATH, '//div[contains(@class, "x1i10hfl") and @role="button" and contains(@class, "x1y1aw1k") and contains(@class, "x1sxyh0") and contains(@class, "xwib8y2") and contains(@class, "xurb0ha") and contains(@class, "xcdnw81")]'))).click()
                     # Add a random delay between 1 and 3 seconds
                     time.sleep(random.uniform(1, 5))
                 except Exception as e:
@@ -743,6 +744,16 @@ class Bot:
                 print(f"[{self.username}] -> Welcome DM sent to {username}.")
                 time.sleep(2)
 
-a = Bot("username", "password")
-a.follow_users()
-a.unfollow_users()
+# a = Bot("username", "password")
+# a.follow_users()
+# a.unfollow_users()
+
+from InstagramDjangoApp.models import Profile, InstagramAccount
+def testmethod():
+    print("print this first")
+    profilecheck = Profile.objects.first()
+    account = InstagramAccount.objects.get(profile=profilecheck)
+    print(f"{account.username}  {account.password}")
+    bot = Bot(username=account.username, password=account.password)
+
+    return bot

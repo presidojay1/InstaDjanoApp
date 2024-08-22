@@ -5,6 +5,13 @@ from django.utils import timezone
 
 UserModel = get_user_model()
 
+
+
+class ProfileManager(models.Manager):
+    def valid_subscriptions(self):
+        return self.filter(subscription_end_date__gte=timezone.now().date())
+    
+
 class Profile(models.Model):
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='profile')
     age = models.IntegerField(null=True, blank=True)
@@ -14,6 +21,8 @@ class Profile(models.Model):
     stripe_customer_id = models.CharField(max_length=255, null=True, blank=True)
     subscription_plan = models.CharField(max_length=50, choices=[('basic', 'Basic'), ('medium', 'Medium'), ('premium', 'Premium'), ('unsubscribed', 'Unsubscribed')], null=True, blank=True, default='unsubscribed')
     subscription_end_date = models.DateField(null=True, blank=True)
+
+    objects = ProfileManager()
 
     @property
     def username(self):

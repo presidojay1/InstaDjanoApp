@@ -41,6 +41,16 @@ class PaymentHistory(models.Model):
     def __str__(self):
         return f'Payment of {self.amount} by {self.profile.user.username}'
     
+
+class Listing(models.Model):
+    address = models.CharField(max_length=255)
+    price = models.CharField(max_length=255)
+    description = models.TextField()
+    image_url = models.URLField()
+
+    def __str__(self):
+        return self.address
+    
 class InstagramAccount(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='instagram_accounts')
     username = models.CharField(max_length=255)

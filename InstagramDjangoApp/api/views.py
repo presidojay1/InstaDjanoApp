@@ -13,6 +13,7 @@ from .validations import custom_validation
 from django.contrib.auth import get_user_model
 from django.contrib.auth import logout
 
+from .newbot import Bot
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from ..models import Profile
@@ -28,8 +29,14 @@ import datetime
 import requests
 from decimal import Decimal, InvalidOperation
 
+
 import stripe
 from instagrapi import Client
+
+import requests
+
+
+
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -384,3 +391,22 @@ def manage_instagram_accounts(request):
     
     return JsonResponse(response)
 
+
+@api_view(['POST'])
+def get_centrish_listings(request):
+    # Extract username and password from request data
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    # Check if username and password are provided
+    if not username or not password:
+        return Response({"error": "Username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Initialize Bot with the provided credentials
+        bot = Bot(username, password)
+        listings = bot.get_listings()  # This returns a list
+        return Response(listings)  # Wrap the list in a Response object
+    except Exception as e:
+        # Handle any exceptions that may occur
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

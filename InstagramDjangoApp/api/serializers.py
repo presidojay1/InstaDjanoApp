@@ -41,6 +41,11 @@ class InstagramAccountSerializer(serializers.ModelSerializer):
         model = InstagramAccount
         fields = ('username', 'password')
 
+class ListingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Listing
+        fields = '__all__'
+
 class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')
     user_id = serializers.ReadOnlyField(source='user.id')

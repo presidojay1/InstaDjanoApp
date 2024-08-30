@@ -25,6 +25,7 @@ SECRET_KEY = 'django-insecure-ipg=fxwoc(c47cvfml)_9634=bhp6_%p)84y(pwu7(5d^!-eqr
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+ALLOWED_HOSTS = ['52.91.135.209']
 ALLOWED_HOSTS = []
 
 

@@ -13,7 +13,7 @@ from .validations import custom_validation
 from django.contrib.auth import get_user_model
 from django.contrib.auth import logout
 
-from rest_framework import status
+from rest_framework import status, generics, permissions
 from rest_framework.permissions import IsAuthenticated
 from ..models import Profile
 from .serializers import *
@@ -36,139 +36,139 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 UserModel = get_user_model()
 
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
+# class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+#     @classmethod
+#     def get_token(cls, user):
+#         token = super().get_token(user)
 
-        # Add custom claims
-        token['name'] = user.username
-        # ...
+#         # Add custom claims
+#         token['name'] = user.username
+#         # ...
 
-        return token
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer
-
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def user_register(request):
-    clean_data = custom_validation(request.data)
-    serializer = UserRegisterSerializer(data=clean_data)
-    if serializer.is_valid(raise_exception=True):
-        user = serializer.create(clean_data)
-        # Create a profile with a default "unsubscribed" plan
-        Profile.objects.create(user=user, subscription_plan="unsubscribed")
-        response_data = {
-            'user_id': user.id,
-            'email': user.email,
-            'username': user.username
-        }
-        return Response(response_data, status=status.HTTP_201_CREATED)
-    return Response(status=status.HTTP_400_BAD_REQUEST)
+#         return token
+# class MyTokenObtainPairView(TokenObtainPairView):
+#     serializer_class = MyTokenObtainPairSerializer
 
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def create_profile(request):
-    clean_data = custom_validation(request.data)
-    serializer = UserRegisterSerializer(data=clean_data)
-    if serializer.is_valid(raise_exception=True):
-        user = serializer.create(clean_data)
-        # Create a profile with a default "unsubscribed" plan
-        Profile.objects.create(user=user, subscription_plan="unsubscribed")
-        response_data = {
-            'user_id': user.id,
-            'email': user.email,
-            'username': user.username
-        }
-        return Response(response_data, status=status.HTTP_201_CREATED)
-    return Response(status=status.HTTP_400_BAD_REQUEST)
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def user_register(request):
+#     clean_data = custom_validation(request.data)
+#     serializer = UserRegisterSerializer(data=clean_data)
+#     if serializer.is_valid(raise_exception=True):
+#         user = serializer.create(clean_data)
+#         # Create a profile with a default "unsubscribed" plan
+#         Profile.objects.create(user=user, subscription_plan="unsubscribed")
+#         response_data = {
+#             'user_id': user.id,
+#             'email': user.email,
+#             'username': user.username
+#         }
+#         return Response(response_data, status=status.HTTP_201_CREATED)
+#     return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['PUT'])
-def update_profile(request, identifier=None):
-    if identifier:
-        if identifier.isdigit():
-            try:
-                user = UserModel.objects.get(id=int(identifier))
-            except UserModel.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            try:
-                user = UserModel.objects.get(username=identifier)
-            except UserModel.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def create_profile(request):
+#     clean_data = custom_validation(request.data)
+#     serializer = UserRegisterSerializer(data=clean_data)
+#     if serializer.is_valid(raise_exception=True):
+#         user = serializer.create(clean_data)
+#         # Create a profile with a default "unsubscribed" plan
+#         Profile.objects.create(user=user, subscription_plan="unsubscribed")
+#         response_data = {
+#             'user_id': user.id,
+#             'email': user.email,
+#             'username': user.username
+#         }
+#         return Response(response_data, status=status.HTTP_201_CREATED)
+#     return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+# @api_view(['PUT'])
+# def update_profile(request, identifier=None):
+#     if identifier:
+#         if identifier.isdigit():
+#             try:
+#                 user = UserModel.objects.get(id=int(identifier))
+#             except UserModel.DoesNotExist:
+#                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+#         else:
+#             try:
+#                 user = UserModel.objects.get(username=identifier)
+#             except UserModel.DoesNotExist:
+#                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        profile = user.profile
-    else:
-        try:
-            profile = request.user.profile
-        except Profile.DoesNotExist:
-            return Response({'error': 'Profile does not exist'}, status=status.HTTP_404_NOT_FOUND)
+#         profile = user.profile
+#     else:
+#         try:
+#             profile = request.user.profile
+#         except Profile.DoesNotExist:
+#             return Response({'error': 'Profile does not exist'}, status=status.HTTP_404_NOT_FOUND)
     
-    profile_serializer = ProfileSerializer(profile, data=request.data, partial=True)
-    if profile_serializer.is_valid():
-        profile_serializer.save()
-        return Response(profile_serializer.data)
-    return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     profile_serializer = ProfileSerializer(profile, data=request.data, partial=True)
+#     if profile_serializer.is_valid():
+#         profile_serializer.save()
+#         return Response(profile_serializer.data)
+#     return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET'])
-def get_profile(request, identifier=None):
-    if identifier:
-        if identifier.isdigit():
-            try:
-                user = UserModel.objects.get(id=int(identifier))
-            except UserModel.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            try:
-                user = UserModel.objects.get(username=identifier)
-            except UserModel.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+# @api_view(['GET'])
+# def get_profile(request, identifier=None):
+#     if identifier:
+#         if identifier.isdigit():
+#             try:
+#                 user = UserModel.objects.get(id=int(identifier))
+#             except UserModel.DoesNotExist:
+#                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+#         else:
+#             try:
+#                 user = UserModel.objects.get(username=identifier)
+#             except UserModel.DoesNotExist:
+#                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        profile = user.profile
-    else:
-        profile = request.user.profile
+#         profile = user.profile
+#     else:
+#         profile = request.user.profile
 
-    profile_serializer = ProfileSerializer(profile)
-    return Response(profile_serializer.data)
+#     profile_serializer = ProfileSerializer(profile)
+#     return Response(profile_serializer.data)
 
 
-@api_view(['DELETE'])
-def delete_profile(request, identifier=None):
-    if identifier:
-        if identifier.isdigit():
-            try:
-                user = UserModel.objects.get(id=int(identifier))
-            except UserModel.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            try:
-                user = UserModel.objects.get(username=identifier)
-            except UserModel.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+# @api_view(['DELETE'])
+# def delete_profile(request, identifier=None):
+#     if identifier:
+#         if identifier.isdigit():
+#             try:
+#                 user = UserModel.objects.get(id=int(identifier))
+#             except UserModel.DoesNotExist:
+#                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+#         else:
+#             try:
+#                 user = UserModel.objects.get(username=identifier)
+#             except UserModel.DoesNotExist:
+#                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        profile = user.profile
-    else:
-        try:
-            profile = request.user.profile
-        except Profile.DoesNotExist:
-            return Response({'error': 'Profile does not exist'}, status=status.HTTP_404_NOT_FOUND)
+#         profile = user.profile
+#     else:
+#         try:
+#             profile = request.user.profile
+#         except Profile.DoesNotExist:
+#             return Response({'error': 'Profile does not exist'}, status=status.HTTP_404_NOT_FOUND)
     
-    profile.delete()
-    user.delete()  # This will delete the associated user
-    return Response(status=status.HTTP_204_NO_CONTENT)
+#     profile.delete()
+#     user.delete()  # This will delete the associated user
+#     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def user_logout(request):
-    logout(request)
-    return Response(status=status.HTTP_200_OK)
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def user_logout(request):
+#     logout(request)
+#     return Response(status=status.HTTP_200_OK)
     
 
 def get_plan_details(plan_id):
@@ -243,31 +243,54 @@ def subscribe_to_plan(request):
     except stripe.error.StripeError as e:
         return Response({'status': 'Subscription failed', 'message': str(e)}, status=400)
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import InstagramAccountSerializer
+
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def add_instagram_account(request):
-    user = UserModel.objects.get(id=request.data.get('user_id'))
-    profile = user.profile
+    profile = request.user.profile
+    
     if profile.subscription_plan == 'unsubscribed':
         return Response({'error': 'You must subscribe to a plan before adding Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
 
     # Plan restrictions for adding Instagram accounts
-    if profile.subscription_plan == 'basic' and profile.instagram_accounts.count() >= 2:
-        return Response({'error': 'Basic plan allows only 2 Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
-    elif profile.subscription_plan == 'medium' and profile.instagram_accounts.count() >= 5:
-        return Response({'error': 'Medium plan allows only 5 Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
-    elif profile.subscription_plan == 'premium' and profile.instagram_accounts.count() >= 10:
-        return Response({'error': 'Premium plan allows only 10 Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
+    plan_limits = {'basic': 2, 'medium': 5, 'premium': 10}
+    if profile.instagram_accounts.count() >= plan_limits.get(profile.subscription_plan, 0):
+        return Response({'error': f'{profile.subscription_plan.capitalize()} plan allows only {plan_limits[profile.subscription_plan]} Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
 
-    data = request.data
-    instagram_serializer = InstagramAccountSerializer(data=data)
-    if instagram_serializer.is_valid():
-        instagram_serializer.save(profile=profile)
+    serializer = InstagramAccountSerializer(data=request.data)
+    if serializer.is_valid():
+        instagram_account = serializer.save(profile=profile)
+
         profile.number_of_ig_accounts += 1
         profile.save()
-        return Response(instagram_serializer.data, status=status.HTTP_201_CREATED)
-    return Response(instagram_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InstagramAccountListAPIView(generics.ListAPIView):
+    queryset = InstagramAccount.objects.all()
+    serializer_class = InstagramAccountListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(profile =self.request.user.profile)
+    
+class InstagramAccountRetrieveAPIView(generics.RetrieveAPIView):
+    queryset = InstagramAccount.objects.all()
+    serializer_class = InstagramAccountSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+    
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def payments_history(request, identifier=None):
     try:
         # Check if identifier is provided, if not, use the authenticated user
@@ -289,7 +312,10 @@ def payments_history(request, identifier=None):
     except Profile.DoesNotExist:
         return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
+
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def payment_history_by_reference(request,reference):
     user = UserModel.objects.get(id=request.data.get('user_id'))
     profile = user.profile
@@ -300,6 +326,7 @@ def payment_history_by_reference(request,reference):
 
     serializer = PaymentHistorySerializer(payment)
     return Response(serializer.data)
+
 
 
 @csrf_exempt
@@ -343,6 +370,7 @@ def stripe_webhook(request):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def manage_instagram_accounts(request):
     user = UserModel.objects.get(id=request.data.get('user_id'))
     profile = user.profile

@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 import datetime
 from django.utils import timezone
+from cryptography.fernet import Fernet
+from django.conf import settings
 
 UserModel = get_user_model()
 
@@ -50,10 +52,23 @@ class PaymentHistory(models.Model):
     def __str__(self):
         return f'Payment of {self.amount} by {self.profile.user.username}'
     
+
+    
 class InstagramAccount(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='instagram_accounts')
     username = models.CharField(max_length=255)
-    password = models.CharField(max_length=255)  # Ideally, this should be encrypted
+    encrypted_password = models.BinaryField()
+
+    @property
+    def password(self):
+        f = Fernet(settings.ENCRYPTION_KEY)
+        return f.decrypt(self.encrypted_password).decode()
+
+    @password.setter
+    def password(self, raw_password):
+        f = Fernet(settings.ENCRYPTION_KEY)
+        self.encrypted_password = f.encrypt(raw_password.encode())
 
     def __str__(self):
         return f'{self.username} (Profile: {self.profile.user.username})'
+    

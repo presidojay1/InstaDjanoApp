@@ -15,7 +15,7 @@ click==8.1.7
 cloudinary==1.40.0
 cloudpathlib==0.18.1
 colorama==0.4.6
-confection==0.1.5
+confection
 constantly==23.10.4
 cryptography==42.0.8
 dj-database-url==2.2.0
@@ -33,7 +33,7 @@ gunicorn==22.0.0
 httplib2==0.22.0
 hyperlink==21.0.0
 idna==3.7
-instagrapi==2.1.2
+instagrapi
 markdown-it-py==3.0.0
 MarkupSafe==2.1.5
 packaging==24.1

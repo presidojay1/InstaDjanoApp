@@ -20,14 +20,14 @@ def send_registration_email(email):
 def send_verification_email(email, token):
     try:
         user = CustomUser.objects.get(email=email)
-        print('got user')
+        # print('got user')
     except CustomUser.DoesNotExist:
         user = None
 
     if user is not None:
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        verification_url = f"{CLIENT_URL}/auth/verify/{uid}/{token}/"
+        verification_url = f"{CLIENT_URL}/accounts/verify/{uid}/{token}/"
         # print(verification_url)
         subject = "Welcome to AstraLemon"
         context = {
@@ -35,7 +35,7 @@ def send_verification_email(email, token):
             'user_email': email,
             'verification_url': verification_url,
         }
-        print('before template')
+        # print('before template')
         message = render_to_string('account-verify.html', context)
         html_message = render_to_string('account-verify.html',context)
         sender = EMAIL_HOST_USER 

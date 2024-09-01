@@ -62,7 +62,13 @@ class InstagramAccountSerializer(serializers.ModelSerializer):
             password = validated_data.pop('password')
             instance.password = password  # This will use the property setter to encrypt
         return super().update(instance, validated_data)
-    
+
+
+
+class InstagramAccountListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstagramAccount
+        fields = ['id', 'username'] 
 
 # class InstagramAccountSerializer(serializers.ModelSerializer):
 #     class Meta:

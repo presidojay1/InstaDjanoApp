@@ -249,46 +249,139 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import InstagramAccountSerializer
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def add_instagram_account(request):
-    profile = request.user.profile
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
+
+
+# @extend_schema(
+#     request=InstagramAccountSerializer,
+#     responses={
+#         201: InstagramAccountSerializer,
+#         400: OpenApiTypes.OBJECT,
+#         403: OpenApiTypes.OBJECT
+#     },
+#     description='Add an Instagram account based on the authenticated user\'s subscription plan',
+#     examples=[
+#         OpenApiExample(
+#             'Valid Input',
+#             value={
+#                 'username': 'your_instagram_username',
+#                 'password': 'your_password'
+#             },
+#             request_only=True,  # This example is for request bodies only
+#             response_only=False,
+#         )
+#     ]
+# )
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def add_instagram_account(request):
+#     profile = request.user.profile
     
-    if profile.subscription_plan == 'unsubscribed':
-        return Response({'error': 'You must subscribe to a plan before adding Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
+#     if profile.subscription_plan == 'unsubscribed':
+#         return Response({'error': 'You must subscribe to a plan before adding Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
 
-    # Plan restrictions for adding Instagram accounts
-    plan_limits = {'basic': 2, 'medium': 5, 'premium': 10}
-    if profile.instagram_accounts.count() >= plan_limits.get(profile.subscription_plan, 0):
-        return Response({'error': f'{profile.subscription_plan.capitalize()} plan allows only {plan_limits[profile.subscription_plan]} Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
+#     # Plan restrictions for adding Instagram accounts
+#     plan_limits = {'basic': 2, 'medium': 5, 'premium': 10}
+#     if profile.instagram_accounts.count() >= plan_limits.get(profile.subscription_plan, 0):
+#         return Response({'error': f'{profile.subscription_plan.capitalize()} plan allows only {plan_limits[profile.subscription_plan]} Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
 
-    serializer = InstagramAccountSerializer(data=request.data)
-    if serializer.is_valid():
+#     serializer = InstagramAccountSerializer(data=request.data)
+#     if serializer.is_valid():
+#         instagram_account = serializer.save(profile=profile)
+
+#         profile.number_of_ig_accounts += 1
+#         profile.save()
+
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class InstagramAccountCreateView(generics.CreateAPIView):
+    serializer_class = InstagramAccountSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        request=InstagramAccountSerializer,
+        responses={
+            201: InstagramAccountSerializer,
+            400: OpenApiTypes.OBJECT,
+            403: OpenApiTypes.OBJECT
+        },
+        description='Add an Instagram account based on the user\'s subscription plan',
+        examples=[
+            OpenApiExample(
+                'Valid Input',
+                value={
+                    'username': 'your_instagram_username',
+                    'password': 'your_password'
+                },
+                request_only=True,
+                response_only=False,
+            )
+        ]
+    )
+    def create(self, request, *args, **kwargs):
+        profile = request.user.profile
+        
+        if profile.subscription_plan == 'unsubscribed':
+            return Response({'error': 'You must subscribe to a plan before adding Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Plan restrictions for adding Instagram accounts
+        plan_limits = {'basic': 2, 'medium': 5, 'premium': 10}
+        if profile.instagram_accounts.count() >= plan_limits.get(profile.subscription_plan, 0):
+            return Response({'error': f'{profile.subscription_plan.capitalize()} plan allows only {plan_limits[profile.subscription_plan]} Instagram accounts'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         instagram_account = serializer.save(profile=profile)
-
         profile.number_of_ig_accounts += 1
         profile.save()
+        # headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)#, headers=headers)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class InstagramAccountListView(generics.ListAPIView):
+    serializer_class = InstagramAccountListSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-class InstagramAccountListAPIView(generics.ListAPIView):
-    queryset = InstagramAccount.objects.all()
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='all', description='Return all Instagram accounts (superusers only)', required=False, type=bool)
+        ],
+        responses={200: InstagramAccountListSerializer(many=True)}
+    )
+    def get_queryset(self):
+        user = self.request.user
+        all_accounts = self.request.query_params.get('all', 'false').lower() == 'true'
+
+        if all_accounts and user.is_superuser:
+            return InstagramAccount.objects.all()
+        return InstagramAccount.objects.filter(profile=user.profile)
+
+class InstagramAccountDetailView(generics.RetrieveAPIView):
     serializer_class = InstagramAccountListSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return self.queryset.filter(profile =self.request.user.profile)
-    
-class InstagramAccountRetrieveAPIView(generics.RetrieveAPIView):
-    queryset = InstagramAccount.objects.all()
-    serializer_class = InstagramAccountSerializer
+        return InstagramAccount.objects.filter(profile=self.request.user.profile)
+
+class InstagramAccountDeleteView(generics.DestroyAPIView):
+    serializer_class = InstagramAccountListSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+        return InstagramAccount.objects.filter(profile=self.request.user.profile)
+
+    def perform_destroy(self, instance):
+        profile = instance.profile
+        instance.delete()
+        profile.number_of_ig_accounts -= 1
+        profile.save()
     
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def payments_history(request, identifier=None):

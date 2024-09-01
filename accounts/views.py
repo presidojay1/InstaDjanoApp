@@ -24,6 +24,10 @@ from django.urls import reverse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -53,7 +57,7 @@ class UserRegisteration(generics.CreateAPIView):
         if referrer_id:
             serializer.validated_data['referred_by'] = referrer_id
 
-        user = serializer.save()
+        user = serializer.save(is_verified=False) 
         token = default_token_generator.make_token(user)
         # send_verification_email(user.email, token='ccfqeb-762f22538682d6dffd48bfb59e4e1354')
           
@@ -154,6 +158,48 @@ class PasswordResetConfirmView(GenericAPIView):
     
 
 
+
+class ResendVerificationLinkView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetRequestSerializer
+
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(description="Verification email sent successfully"),
+            400: OpenApiResponse(description="Invalid email or user already verified"),
+            404: OpenApiResponse(description="User not found"),
+        },
+        description="Resend verification email to unverified users"
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+
+
+            # try:
+            #     validate_email(email)
+            # except ValidationError:
+            #     return Response({"error": "Invalid email format"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                user = CustomUser.objects.get(email=email)
+            except CustomUser.DoesNotExist:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if user.is_verified:
+                return Response({"error": "User is already verified"}, status=status.HTTP_400_BAD_REQUEST)
+
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            try:
+                send_verification_email(email, token)
+            except Exception as e:
+                return Response({"error": "Failed to send verification email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            return Response({"message": "Verification email sent successfully"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class LoginView(generics.CreateAPIView):
@@ -191,6 +237,7 @@ class LoginView(generics.CreateAPIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
             "message": "login successful",
+            "id": user.id,
             "email": user.email,
             "first_name": user.first_name,
             

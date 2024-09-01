@@ -40,7 +40,6 @@ def perform_instagram_tasks_for_profile(self, profile_id):
 
 
 
-
 @shared_task(bind=True, max_retries=3, rate_limit='1/m')
 def perform_bot_actions_for_account(self, account_id, subscription_plan):
     try:

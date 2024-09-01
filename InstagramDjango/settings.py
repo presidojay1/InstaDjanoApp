@@ -47,10 +47,12 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = config('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND')
 # CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-CELERY_IMPORTS = ['InstagramDjangoApp.tasks']
+CELERY_IMPORTS = config('CELERY_IMPORTS')
 
 
 
@@ -80,13 +82,10 @@ INSTALLED_APPS = [
     'drf_spectacular',
 ]
 
-STRIPE_SECRET_KEY = "sk_test_51PfoFIGdWNCS6S2AxrbzhTVpVj48M6K93ckImG65Kv22bwXsKdtMPiMeQrwkC1Y1dzpR3mbDVQBAnhhtrCh51LKi00pDplQCBo"
-STRIPE_WEBHOOK_SECRET = 'we_1PnhsbGdWNCS6S2AeI6oJask'
-STRIPE_PLAN_IDS = {
-    'basic': 'price_1PniXeGdWNCS6S2ANAsPtGrA',
-    'medium': 'price_1PniD3GdWNCS6S2A3jRkGUBp',
-    'premium': 'price_1PniDuGdWNCS6S2AhT49vOd7',
-}
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET')
+STRIPE_PLAN_IDS = config('STRIPE_PLAN_IDS')
+
 
 REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "errors",
@@ -101,7 +100,7 @@ REST_FRAMEWORK = {
 
 # Generate this once and store it securely, don't regenerate on each run
 # ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY') or Fernet.generate_key()
-ENCRYPTION_KEY = 'q1Ga2jyQI714puuXRkERcKJUiQvpFREDmIJo2b4Xg0s='
+ENCRYPTION_KEY = config('ENCRYPTION_KEY')
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
@@ -170,8 +169,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
     'corsheaders.middleware.CorsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = 'InstagramDjango.urls'
@@ -204,6 +203,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+DATABASES["default"] = dj_database_url.parse(config("DATABASE_URL"))
 
 # DATABASES = {
 #     'default': dj_database_url.parse(config('DATABASE_URL'))
@@ -245,14 +246,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 CORS_ALLOW_ALL_ORIGINS = True
-
+CSRF_TRUSTED_ORIGINS = ['https://astrolemon.onrender.com']
 
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = "smtp.gmail.com"

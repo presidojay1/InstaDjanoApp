@@ -14,8 +14,10 @@ urlpatterns = [
   # path('profile/delete/<str:identifier>/', delete_profile, name='delete_profile_by_identifier'),
    path('subscribe/', subscribe_to_plan, name='subscribe_to_plan'),
     path('payment_history/<str:identifier>/', payments_history, name='payment_history_by_identifier'),
-    path('add_instagram/', add_instagram_account, name='add_instagram_account'),
-    path('instagram-accounts/', InstagramAccountListAPIView.as_view(), name='instagram-account-list-retrieve'),
+    path('instagram-accounts/', InstagramAccountListView.as_view(), name='instagram-account-list'),
+    path('instagram-accounts/create/', InstagramAccountCreateView.as_view(), name='instagram-account-create'),
+    path('instagram-accounts/<int:pk>/', InstagramAccountDetailView.as_view(), name='instagram-account-detail'),
+    path('instagram-accounts/<int:pk>/delete/', InstagramAccountDeleteView.as_view(), name='instagram-account-delete'),
     path('payment_history/by_ref/<str:reference>/', payment_history_by_reference, name='payment_history_by_reference'),
     path('manage-instagram-accounts/', manage_instagram_accounts, name='manage_instagram_accounts'),
 ]

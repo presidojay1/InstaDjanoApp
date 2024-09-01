@@ -14,33 +14,42 @@ from selenium.common.exceptions import TimeoutException
 from InstagramDjangoApp.models import Profile, InstagramAccount
 from .bot import Bot 
 
+
+
 class InstagramBotTaskView(APIView):
     @extend_schema(
         parameters=[
-            OpenApiParameter(name='profile_id', description='ID of the Profile', required=True, type=int)
+            OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
         ],
         responses={200: None, 404: None, 500: None},
-        description='Run Instagram bot task for a specific profile'
+        description='Run Instagram bot task for a specific User'
     )
-    def get(self, request, profile_id):
+    def get(self, request, user_id):
         try:
-            profile = get_object_or_404(Profile, id=profile_id)
-            account = InstagramAccount.objects.get(profile=profile)
+            profile = get_object_or_404(Profile, user__id=user_id)
+            accounts = InstagramAccount.objects.filter(profile=profile)
             
-            print(f"{account.username}  {account.password}")
-            bot = Bot(username=account.username, password=account.password, headless=False)
-            print("Initialized bot")
-
-            print("Trying to like stories")
-            bot.like_stories()         
-            print("liked stories")
-
-            print("Trying to like posts from profile ......")
-            bot.like_posts_from_profile()
-            print("Liked posts from profile done")
+            if not accounts.exists():
+                return Response({"error": "No Instagram accounts found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
             
-            return Response({"message": "Task completed successfully"}, status=status.HTTP_200_OK)
-        
+            for account in accounts:
+                print(f"Running tasks for account: {account.username}")
+                
+                # Initialize the bot for each account
+                bot = Bot(username=account.username, password=account.password, headless=False)
+                print("Initialized bot")
+
+                print("Trying to like stories")
+                bot.like_stories()         
+                print("liked stories")
+
+                print("Trying to like posts from profile ......")
+                bot.like_posts_from_profile()
+                print("Liked posts from profile done")
+                
+            print(f"Completed tasks for all accounts of user: {user_id}")
+            return Response({"message": "Tasks completed successfully for all Instagram accounts"}, status=status.HTTP_200_OK)
+            
         except InstagramAccount.DoesNotExist:
             return Response({"error": "Instagram account not found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
         
@@ -51,6 +60,134 @@ class InstagramBotTaskView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class InstagramBotTaskView1(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
+        ],
+        responses={200: None, 404: None, 500: None},
+        description='Run Instagram bot task based on the user’s subscription plan'
+    )
+    def get(self, request, user_id):
+        try:
+            # Fetch the profile using user_id
+            profile = get_object_or_404(Profile, user__id=user_id)
+            accounts = InstagramAccount.objects.filter(profile=profile)
+            
+            if not accounts.exists():
+                return Response({"error": "No Instagram accounts found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
+            
+            for account in accounts:
+                print(f"Running tasks for account: {account.username}")
+                
+                # Initialize the bot for each account
+                bot = Bot(username=account.username, password=account.password, headless=False)
+                print("Initialized bot")
+                
+                # Perform actions based on the user's subscription plan
+                self.perform_actions_based_on_plan(profile, bot)
+
+            print(f"Completed tasks for all accounts of user: {user_id}")
+            return Response({"message": "Tasks completed successfully for all Instagram accounts"}, status=status.HTTP_200_OK)
+            
+
+        except Profile.DoesNotExist:
+            return Response({"error": "Profile not found for the given user ID"}, status=status.HTTP_404_NOT_FOUND)
+
+        except InstagramAccount.DoesNotExist:
+            return Response({"error": "Instagram accounts not found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    def perform_actions_based_on_plan(self, profile, bot):
+        """
+        Perform Instagram bot actions based on the user's subscription plan.
+        """
+        plan = profile.subscription_plan
+
+        if plan == 'basic':
+            perform_basic_actions(bot)
+        elif plan == 'medium':
+            perform_medium_actions(bot)
+        elif plan == 'premium':
+            perform_premium_actions(bot)
+        else:
+            raise ValueError("Invalid subscription plan. Cannot perform actions.")
+        
+
+class InstagramBotTaskView2(APIView):
+    permission_classes = [AllowAny]
+    @extend_schema(
+        parameters=[
+            # OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int),
+            OpenApiParameter(name='task', description='Task to run based on subscription (basic, medium, premium)', required=True, type=str)
+        ],
+        responses={200: None, 404: None, 500: None},
+        description='Run Instagram bot task for a specific user based on their subscription plan'
+    )
+    def get(self, request, user_id):
+        try:
+            # Fetch the profile using user_id
+            task = request.query_params.get('task')
+            valid_tasks = ['basic', 'medium', 'premium']
+            if not task:
+                return Response({"error": "Task parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+            if task not in valid_tasks:
+                return Response({"error": f"Invalid task specified. Choose from {', '.join(valid_tasks)}."}, status=status.HTTP_400_BAD_REQUEST)
+            profile = get_object_or_404(Profile, user__id=user_id)
+            accounts = InstagramAccount.objects.filter(profile=profile)
+            
+            if not accounts.exists():
+                return Response({"error": "No Instagram accounts found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
+            
+            for account in accounts:
+                print(f"Running tasks for account: {account.username}")
+                
+                # Initialize the bot for each account
+                bot = Bot(username=account.username, password=account.password, headless=False)
+                print("Initialized bot")
+
+                # Determine which actions to perform based on the task
+                if task == 'basic':
+                    perform_basic_actions(bot)
+                elif task == 'medium':
+                    perform_medium_actions(bot)
+                elif task == 'premium':
+                    perform_premium_actions(bot)
+                else:
+                    return Response({"error": "Invalid task specified. Choose from 'basic', 'medium', 'premium'."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            print(f"Completed tasks for all accounts of user: {user_id}")
+            return Response({"message": "Tasks completed successfully for all Instagram accounts"}, status=status.HTTP_200_OK)
+
+        except Profile.DoesNotExist:
+            return Response({"error": "Profile not found for the given user ID"}, status=status.HTTP_404_NOT_FOUND)
+
+        except InstagramAccount.DoesNotExist:
+            return Response({"error": "Instagram account not found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Define the functions to perform actions based on the subscription plan
+
+def perform_basic_actions(bot):
+    bot.like_stories()
+    bot.like_posts_from_feed()
+
+def perform_medium_actions(bot):
+    perform_basic_actions(bot)
+    # bot.follow_users_from_feed()
+    bot.like_posts_from_profile()
+
+def perform_premium_actions(bot):
+    perform_medium_actions(bot)
+    bot.send_direct_message("Hello! This is an automated message.", ["user1", "user2"])
+    bot.comment_on_posts(["Nice post!", "Great content!"])
+    bot.unfollow_users()
+    bot.scrape_hashtags('#examplehashtag')
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

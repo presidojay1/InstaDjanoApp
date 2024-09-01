@@ -15,17 +15,52 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import os
+from decouple import config
+import dj_database_url
+from cryptography.fernet import Fernet
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ipg=fxwoc(c47cvfml)_9634=bhp6_%p)84y(pwu7(5d^!-eqr'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = [*]
+ALLOWED_HOSTS = ['astrolemon.onrender.com' , 'localhost' , '127.0.0.1']
+
+AUTH_USER_MODEL = "accounts.CustomUser"
+
+CLIENT_URL = config('CLIENT_URL')
+
+
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'perform-instagram-tasks-every-30-minutes': {
+        'task': 'InstagramDjangoApp.tasks.schedule_instagram_tasks',  # Ensure this is correct
+        # 'schedule': crontab(minute='*/30'),  # Every 30 minutes
+        'schedule': crontab(minute=0, hour='*/12'),  # Every 12 hours
+        # 'schedule': crontab(minute=0, hour=0),  # Every day at midnight
+    },
+}
+
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = config('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND')
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_IMPORTS = config('CELERY_IMPORTS')
+
+
+
+# CELERY_BROKER_URL = 'memory://'
+# CELERY_RESULT_BACKEND = 'memory://'
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+
 
 
 # Application definition
@@ -37,29 +72,38 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'accounts',
     'InstagramDjangoApp.apps.InstagramdjangoappConfig',
     "rest_framework",
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_celery_beat',
+    "rest_framework.authtoken",
+    'drf_spectacular',
 ]
 
-STRIPE_SECRET_KEY = "sk_test_51PfoFIGdWNCS6S2AxrbzhTVpVj48M6K93ckImG65Kv22bwXsKdtMPiMeQrwkC1Y1dzpR3mbDVQBAnhhtrCh51LKi00pDplQCBo"
-STRIPE_WEBHOOK_SECRET = 'we_1PnhsbGdWNCS6S2AeI6oJask'
-STRIPE_PLAN_IDS = {
-    'basic': 'price_1PniXeGdWNCS6S2ANAsPtGrA',
-    'medium': 'price_1PniD3GdWNCS6S2A3jRkGUBp',
-    'premium': 'price_1PniDuGdWNCS6S2AhT49vOd7',
-}
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET')
+STRIPE_PLAN_IDS = config('STRIPE_PLAN_IDS')
+
+
 REST_FRAMEWORK = {
-
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    "NON_FIELD_ERRORS_KEY": "errors",
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PAGINATION_CLASS": "InstagramDjango.pagination.CustomPagination",
+    "PAGE_SIZE": 10,
 }
 
+# Generate this once and store it securely, don't regenerate on each run
+# ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY') or Fernet.generate_key()
+ENCRYPTION_KEY = config('ENCRYPTION_KEY')
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -97,6 +141,26 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
+
+SPECTACULAR_SETTINGS = {
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "DEFAULT_GENERATOR_CLASS": "drf_spectacular.generators.SchemaGenerator",
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "COMPONENT_SPLIT_PATCH": True,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayOperationId": True,
+    },
+    "UPLOADED_FILES_USE_URL": True,
+    "TITLE": "AstraLemon",
+    "DESCRIPTION": "AstraLemon APIs",
+    "VERSION": "1.0.0",
+    "LICENCE": {"name": "BSD License"},
+    "CONTACT": {"name": "Macsauce", "email": "brasheed240@gmail.com"},
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -105,16 +169,16 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
     'corsheaders.middleware.CorsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = 'InstagramDjango.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": ['templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -140,6 +204,11 @@ DATABASES = {
     }
 }
 
+DATABASES["default"] = dj_database_url.parse(config("DATABASE_URL"))
+
+# DATABASES = {
+#     'default': dj_database_url.parse(config('DATABASE_URL'))
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -177,10 +246,28 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 CORS_ALLOW_ALL_ORIGINS = True
+CSRF_TRUSTED_ORIGINS = ['https://astrolemon.onrender.com']
+
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_USE_SSL = True
+# EMAIL_PORT = 465
+# EMAIL_HOST_USER = 'brasheed240@gmail.com'
+# EMAIL_HOST_PASSWORD = 'vhghnszeyyqmxohc'
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT")
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+EMAIL_USE_SSL = config("EMAIL_USE_SSL")

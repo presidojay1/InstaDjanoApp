@@ -19,4 +19,5 @@ urlpatterns = [
     path('payment_history/<str:reference>/', payment_history_by_reference, name='payment_history_by_reference'),
     path('manage-instagram-accounts/', manage_instagram_accounts, name='manage_instagram_accounts'),
       path('centrish-listings/', get_centrish_listings),
+        path('get-main-listing/', get_main_listing, name='get_main_listing'),
 ]

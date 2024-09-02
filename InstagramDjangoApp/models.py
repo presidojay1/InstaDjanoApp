@@ -43,13 +43,18 @@ class PaymentHistory(models.Model):
     
 
 class Listing(models.Model):
-    address = models.CharField(max_length=255)
-    price = models.CharField(max_length=255)
-    description = models.TextField()
-    image_url = models.URLField()
+    listings = models.JSONField(default=list)  # Stores the array of listings as JSON
+    last_updated = models.DateTimeField(auto_now=True)  # Automatically updates the timestamp on save
+
+    def save(self, *args, **kwargs):
+        # Ensure that only one instance of Listing exists in the database
+        if Listing.objects.exists() and not self.pk:
+            # If there's already a Listing, delete it before saving the new one
+            Listing.objects.all().delete()
+        super(Listing, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.address
+        return f"Main Listing - Last Updated: {self.last_updated}"
     
 class InstagramAccount(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='instagram_accounts')

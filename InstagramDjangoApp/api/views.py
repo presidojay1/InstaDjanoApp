@@ -394,19 +394,41 @@ def manage_instagram_accounts(request):
 
 @api_view(['POST'])
 def get_centrish_listings(request):
-    # Extract username and password from request data
     username = request.data.get('username')
     password = request.data.get('password')
 
-    # Check if username and password are provided
     if not username or not password:
         return Response({"error": "Username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     try:
         # Initialize Bot with the provided credentials
-        bot = Bot(username, password)
-        listings = bot.get_listings()  # This returns a list
-        return Response(listings)  # Wrap the list in a Response object
+        bot = Bot(username, password, headless=True)
+        new_listings_data = bot.get_listings()  # This returns a list of dictionaries
+
+        # Fetch the main listing or create it if it doesn't exist
+        main_listing, created = Listing.objects.get_or_create(id=1)
+
+        # Update the main listing with new data
+        main_listing.listings = new_listings_data
+        main_listing.save()
+
+        return Response({
+            "message": "Main Listing updated successfully",
+            "listings": main_listing.listings
+        })
+
     except Exception as e:
-        # Handle any exceptions that may occur
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['GET'])
+def get_main_listing(request):
+    try:
+        main_listing = Listing.objects.first()
+        if not main_listing:
+            return Response({"error": "No listings found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(main_listing.listings)
+
+    except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

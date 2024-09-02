@@ -62,7 +62,9 @@ class InstagramAccount(models.Model):
     @property
     def password(self):
         f = Fernet(settings.ENCRYPTION_KEY)
-        return f.decrypt(self.encrypted_password).decode()
+        encrypted_password_bytes = bytes(self.encrypted_password)
+        return f.decrypt(encrypted_password_bytes).decode()
+        # return f.decrypt(self.encrypted_password).decode()
 
     @password.setter
     def password(self, raw_password):

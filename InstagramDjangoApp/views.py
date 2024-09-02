@@ -17,10 +17,11 @@ from .bot import Bot
 
 
 class InstagramBotTaskView(APIView):
+    permission_classes = [IsAuthenticated]
     @extend_schema(
-        parameters=[
-            OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
-        ],
+        # parameters=[
+        #     OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
+        # ],
         responses={200: None, 404: None, 500: None},
         description='Run Instagram bot task for a specific User'
     )
@@ -61,10 +62,11 @@ class InstagramBotTaskView(APIView):
 
 
 class InstagramBotTaskView1(APIView):
+    permission_classes = [IsAuthenticated]
     @extend_schema(
-        parameters=[
-            OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
-        ],
+        # parameters=[
+        #     OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
+        # ],
         responses={200: None, 404: None, 500: None},
         description='Run Instagram bot task based on the user’s subscription plan'
     )

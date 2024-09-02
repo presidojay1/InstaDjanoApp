@@ -26,9 +26,6 @@ SECRET_KEY = 'django-insecure-ipg=fxwoc(c47cvfml)_9634=bhp6_%p)84y(pwu7(5d^!-eqr
 DEBUG = True
 
 ALLOWED_HOSTS = ['52.91.135.209']
-ALLOWED_HOSTS = []
-
-
 
 CELERY_BROKER_URL = 'memory://'
 CELERY_RESULT_BACKEND = 'memory://'

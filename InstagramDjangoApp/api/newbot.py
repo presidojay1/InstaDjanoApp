@@ -10,11 +10,28 @@ import os
 class Bot:
 
     def __init__(self, code, password, headless=False):
+        #     self.user_code = code
+        #    self.password = password
+        #    self.login_url = "https://accounts.centris.ca/Account/Login"
+
+        #    chrome_options = webdriver.ChromeOptions()
+        #    chrome_options.add_argument('--headless')
+        #    chrome_options.add_argument('--no-sandbox')
+        #    chrome_options.add_argument('--disable-dev-shm-usage')
+        #    chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        #    chrome_options.add_argument('--log-level=3')
+
+        #    self.browser = webdriver.Chrome(options=chrome_options)
+        #    self.browser.set_window_size(1920, 1080)
+
+        #    self.login()
         self.user_code = code
         self.password = password
         self.login_url = "https://accounts.centris.ca/Account/Login"
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        chromedriver_path = os.path.join(current_directory, 'chromedriver.exe') 
+        # current_directory = os.path.dirname(os.path.abspath(__file__))
+        # chromedriver_path = os.path.join(current_directory, 'chromedriver.exe') 
+        # service = Service(executable_path=chromedriver_path)
+        chromedriver_path = '/usr/local/bin/chromedriver'
         service = Service(executable_path=chromedriver_path)
 
         chrome_options = webdriver.ChromeOptions()

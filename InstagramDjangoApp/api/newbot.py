@@ -14,9 +14,8 @@ class Bot:
         self.password = password
         self.login_url = "https://accounts.centris.ca/Account/Login"
         current_directory = os.path.dirname(os.path.abspath(__file__))
-        chromedriver_path = os.path.join(current_directory, 'chromedriver') 
-        service = Service(chromedriver_path)
-
+        chromedriver_path = os.path.join(current_directory, 'chromedriver.exe') 
+        service = Service(executable_path=chromedriver_path)
 
         chrome_options = webdriver.ChromeOptions()
         if headless:

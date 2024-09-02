@@ -103,8 +103,8 @@ REST_FRAMEWORK = {
 
 # Generate this once and store it securely, don't regenerate on each run
 # ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY') or Fernet.generate_key()
-# ENCRYPTION_KEY = config('ENCRYPTION_KEY')
-ENCRYPTION_KEY = 'q1Ga2jyQI714puuXRkERcKJUiQvpFREDmIJo2b4Xg0s='
+ENCRYPTION_KEY = config('ENCRYPTION_KEY')
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),

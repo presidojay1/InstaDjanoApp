@@ -17,10 +17,11 @@ from .bot import Bot
 
 
 class InstagramBotTaskView(APIView):
+    permission_classes = [IsAuthenticated]
     @extend_schema(
-        parameters=[
-            OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
-        ],
+        # parameters=[
+        #     OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
+        # ],
         responses={200: None, 404: None, 500: None},
         description='Run Instagram bot task for a specific User'
     )
@@ -61,10 +62,11 @@ class InstagramBotTaskView(APIView):
 
 
 class InstagramBotTaskView1(APIView):
+    permission_classes = [IsAuthenticated]
     @extend_schema(
-        parameters=[
-            OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
-        ],
+        # parameters=[
+        #     OpenApiParameter(name='user_id', description='ID of the User', required=True, type=int)
+        # ],
         responses={200: None, 404: None, 500: None},
         description='Run Instagram bot task based on the user’s subscription plan'
     )
@@ -78,7 +80,7 @@ class InstagramBotTaskView1(APIView):
                 return Response({"error": "No Instagram accounts found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
             
             for account in accounts:
-                print(f"Running tasks for account: {account.username}")
+                print(f"Running tasks for account: {account.username} {account.password}")
                 
                 # Initialize the bot for each account
                 bot = Bot(username=account.username, password=account.password, headless=False)

@@ -80,7 +80,7 @@ class InstagramBotTaskView1(APIView):
                 return Response({"error": "No Instagram accounts found for the given profile"}, status=status.HTTP_404_NOT_FOUND)
             
             for account in accounts:
-                print(f"Running tasks for account: {account.username} {account.password}")
+                print(f"Running tasks for account: {account.username}")
                 
                 # Initialize the bot for each account
                 bot = Bot(username=account.username, password=account.password, headless=False)

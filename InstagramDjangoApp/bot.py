@@ -760,31 +760,26 @@ class Bot:
         self.profile_links = None
         self.__usernames_from_story = None
 
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument('--log-level=3')
-        if headless == True:
-            chrome_options.add_argument('--headless=new')
-        self.browser = webdriver.Chrome(options=chrome_options)
 
-        # current_directory = os.path.dirname(os.path.abspath(__file__))
-        # chromedriver_path = os.path.join(current_directory, 'chromedriver.exe')
+        current_directory = os.path.dirname(os.path.abspath(__file__))
+        chromedriver_path = os.path.join(current_directory, 'chromedriver')
 
-        # if chromedriver_path:
-        #     print('found driver')
+        if chromedriver_path:
+            print('found driver')
         # Setting selenium browser instance
         # chrome_options = webdriver.ChromeOptions()
         # chrome_options.add_argument('--log-level=3')
         # self.browser = webdriver.Chrome(options=chrome_options) 
         # service = Service('chromedriver.exe')
-        # service = Service(chromedriver_path)
+        service = Service(chromedriver_path)
         # print('no fugazzy')
-        # chrome_options = webdriver.ChromeOptions()
-        # if headless == True:
-        #     chrome_options.add_argument('--headless=new')
-        # chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        # chrome_options.add_argument('--log-level=3')
+        chrome_options = webdriver.ChromeOptions()
+        if headless == True:
+            chrome_options.add_argument('--headless=new')
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        chrome_options.add_argument('--log-level=3')
 
-        self.browser = webdriver.Chrome(options=chrome_options)
+        self.browser = webdriver.Chrome(options=chrome_options, service=service)
         
         self.__login()
 

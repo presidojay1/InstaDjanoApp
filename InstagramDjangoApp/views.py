@@ -177,7 +177,7 @@ class InstagramBotTaskView2(APIView):
 
 def perform_basic_actions(bot):
     bot.like_stories()
-    bot.like_posts_from_feed()
+    # bot.like_posts_from_feed()
 
 def perform_medium_actions(bot):
     perform_basic_actions(bot)

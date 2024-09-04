@@ -37,7 +37,7 @@ class InstagramBotTaskView(APIView):
                 print(f"Running tasks for account: {account.username}")
                 
                 # Initialize the bot for each account
-                bot = Bot(username=account.username, password=account.password, headless=False)
+                bot = Bot(username=account.username, password=account.password, headless=True)
                 print("Initialized bot")
 
                 print("Trying to like stories")
@@ -83,7 +83,7 @@ class InstagramBotTaskView1(APIView):
                 print(f"Running tasks for account: {account.username}")
                 
                 # Initialize the bot for each account
-                bot = Bot(username=account.username, password=account.password, headless=False)
+                bot = Bot(username=account.username, password=account.password, headless=True)
                 print("Initialized bot")
                 
                 # Perform actions based on the user's subscription plan
@@ -148,7 +148,7 @@ class InstagramBotTaskView2(APIView):
                 print(f"Running tasks for account: {account.username}")
                 
                 # Initialize the bot for each account
-                bot = Bot(username=account.username, password=account.password, headless=False)
+                bot = Bot(username=account.username, password=account.password, headless=True)
                 print("Initialized bot")
 
                 # Determine which actions to perform based on the task
@@ -177,7 +177,7 @@ class InstagramBotTaskView2(APIView):
 
 def perform_basic_actions(bot):
     bot.like_stories()
-    bot.like_posts_from_feed()
+    # bot.like_posts_from_feed()
 
 def perform_medium_actions(bot):
     perform_basic_actions(bot)

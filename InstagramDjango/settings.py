@@ -30,7 +30,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = True
 
 # ALLOWED_HOSTS = [*]
-ALLOWED_HOSTS = ['astrolemon.onrender.com' , 'localhost' , '127.0.0.1']
+ALLOWED_HOSTS = ['astrolemon.onrender.com' , 'localhost' , '127.0.0.1', '159.203.44.134', '*']
 
 AUTH_USER_MODEL = "accounts.CustomUser"
 

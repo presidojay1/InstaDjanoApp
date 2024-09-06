@@ -761,6 +761,8 @@ class Bot:
         self.__usernames_from_story = None
 
 
+            
+            
         current_directory = os.path.dirname(os.path.abspath(__file__))
         chromedriver_path = os.path.join(current_directory, 'chromedriver')
 
@@ -773,7 +775,10 @@ class Bot:
         # service = Service('chromedriver.exe')
         service = Service(chromedriver_path)
         # print('no fugazzy')
-        chrome_options = webdriver.ChromeOptions()
+        chrome_options = webdriver.ChromeOptions() 
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--diabale-dev-shm-usage")
         if headless == True:
             chrome_options.add_argument('--headless=new')
         chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])

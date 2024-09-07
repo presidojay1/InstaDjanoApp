@@ -8,6 +8,47 @@ from celery.exceptions import MaxRetriesExceededError
 from django.core.exceptions import ObjectDoesNotExist
 
 
+@shared_task
+def update_all_instagram_accounts():
+    accounts = InstagramAccount.objects.all()
+    for account in accounts:
+        try:
+            account.update_account_data()
+        except Exception as e:
+            print(f"Error updating account {account.username}: {str(e)}")
+
+
+
+
+@shared_task
+def check_expired_trials():
+    expired_trials = Profile.objects.filter(
+        subscription_plan='free_trial',
+        trial_start_date__lte=timezone.now() - timezone.timedelta(days=4)
+    )
+
+    for profile in expired_trials:
+        if profile.stripe_customer_id:
+            try:
+                # Attempt to bill the customer
+                charge = stripe.Charge.create(
+                    amount=1000,  # Amount in cents
+                    currency='usd',
+                    customer=profile.stripe_customer_id,
+                    description='Subscription charge after free trial'
+                )
+                
+                # Update the profile
+                profile.subscription_plan = 'basic'  # Or whichever plan you want to assign
+                profile.subscription_end_date = timezone.now() + timezone.timedelta(days=30)  # Or however long the subscription should last
+                profile.save()
+                
+                print(f"Successfully billed user {profile.user.username}")
+            except stripe.error.StripeError as e:
+                print(f"Failed to bill user {profile.user.username}: {str(e)}")
+        else:
+            print(f"No payment method on file for user {profile.user.username}")
+
 
 @shared_task
 def schedule_instagram_tasks():
@@ -40,7 +81,7 @@ def perform_instagram_tasks_for_profile(self, profile_id):
 
 
 
-@shared_task(bind=True, max_retries=3, rate_limit='1/m')
+c@shared_task(bind=True, max_retries=3, rate_limit='1/m')
 def perform_bot_actions_for_account(self, account_id, subscription_plan):
     try:
         account = InstagramAccount.objects.get(id=account_id)
@@ -55,7 +96,10 @@ def perform_bot_actions_for_account(self, account_id, subscription_plan):
         time.sleep(random.uniform(5, 15))  # Random delay
 
         # Perform actions based on subscription plan
-        if subscription_plan == 'basic':
+
+        if subscription_plan == 'free_trial':
+            perform_trial_actions(bot)
+        elif subscription_plan == 'basic':
             perform_basic_actions(bot)
         elif subscription_plan == 'medium':
             perform_medium_actions(bot)
@@ -73,7 +117,9 @@ def perform_bot_actions_for_account(self, account_id, subscription_plan):
         bot.browser.quit()
 
 
-
+def perform_trial_actions(bot):
+    bot.like_stories()
+    
 def perform_basic_actions(bot):
     bot.like_stories()
     time.sleep(random.uniform(5, 15))

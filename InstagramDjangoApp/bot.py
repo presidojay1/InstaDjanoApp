@@ -761,19 +761,8 @@ class Bot:
         self.__usernames_from_story = None
 
 
-            
-            
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        chromedriver_path = os.path.join(current_directory, 'chromedriver')
-
-        if chromedriver_path:
-            print('found driver')
-        # Setting selenium browser instance
-        # chrome_options = webdriver.ChromeOptions()
-        # chrome_options.add_argument('--log-level=3')
-        # self.browser = webdriver.Chrome(options=chrome_options) 
-        # service = Service('chromedriver.exe')
-        service = Service(chromedriver_path)
+        chromedriver_path = '/usr/local/bin/chromedriver'
+        service = Service(executable_path=chromedriver_path)
         # print('no fugazzy')
         chrome_options = webdriver.ChromeOptions() 
         chrome_options.add_argument("--headless")

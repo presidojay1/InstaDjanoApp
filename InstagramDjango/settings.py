@@ -46,12 +46,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute=0, hour='*/12'),  # Every 12 hours
         # 'schedule': crontab(minute=0, hour=0),  # Every day at midnight
     },
-
     'check-expired-trials': {
         'task': 'InstagramDjangoApp.tasks.check_expired_trials',
         'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
     },
-
     'update-instagram-accounts-weekly': {
         'task': 'InstagramDjangoApp.tasks.update_all_instagram_accounts',
         'schedule': crontab(day_of_week=0, hour=0, minute=0),  # Run every Sunday at midnight

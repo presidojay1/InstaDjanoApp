@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
-    'InstagramDjangoApp.apps.InstagramdjangoappConfig',
+    'InstagramDjangoApp',
     "rest_framework",
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',

@@ -15,6 +15,7 @@ class ProfileManager(models.Manager):
         return self.filter(subscription_end_date__gte=timezone.now())
     
 
+
 class Profile(models.Model):
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='profile')
     age = models.IntegerField(null=True, blank=True)
@@ -43,6 +44,7 @@ class Profile(models.Model):
             return timezone.now() <= self.subscription_end_date
         return False
     
+
     @property
     def is_trial(self):
         return self.subscription_plan == 'free_trial'

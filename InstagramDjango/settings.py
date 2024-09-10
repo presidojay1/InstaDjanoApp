@@ -1,7 +1,8 @@
 from pathlib import Path
 from datetime import timedelta
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(_file_).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 import os
 from decouple import config
@@ -22,8 +23,9 @@ ALLOWED_HOSTS = ['astrolemon.onrender.com', 'localhost', '127.0.0.1', '159.203.4
 
 AUTH_USER_MODEL = "accounts.CustomUser"
 
-CLIENT_URL = 'http://127.0.0.1:8000'
 
+# CLIENT_URL = 'http://127.0.0.1:8000'
+CLIENT_URL = config('CLIENT_URL')
 
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
@@ -255,8 +257,14 @@ CORS_ALLOW_ALL_ORIGINS = True
 CSRF_TRUSTED_ORIGINS = ['https://astrolemon.onrender.com']
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
-EMAIL_HOST_USER = 'brasheed240@gmail.com'
-EMAIL_HOST_PASSWORD = 'vhghnszeyyqmxohc'
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT")
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+# EMAIL_USE_TLS = "EMAIL_USE_TLS"
+# EMAIL_USE_SSL = True
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 465
+# EMAIL_HOST_USER = 'brasheed240@gmail.com'
+# EMAIL_HOST_PASSWORD = 'vhghnszeyyqmxohc'
 EMAIL_USE_SSL = True

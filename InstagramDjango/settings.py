@@ -33,11 +33,34 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute=0, hour='*/12'),  # Every 12 hours
         # 'schedule': crontab(minute=0, hour=0),  # Every day at midnight
     },
+    'check-expired-trials': {
+        'task': 'InstagramDjangoApp.tasks.check_expired_trials',
+        'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
+    },
+    'update-instagram-accounts-weekly': {
+        'task': 'InstagramDjangoApp.tasks.update_all_instagram_accounts',
+        'schedule': crontab(day_of_week=0, hour=0, minute=0),  # Run every Sunday at midnight
+    },
 }
 
-CELERY_BROKER_URL = 'rediss://red-cracaa5ds78s73cr8eq0:uIwNua8gEWPIvHb3J7uDIOOJC9MhHUAb@oregon-redis.render.com:6379'
-CELERY_RESULT_BACKEND = 'rediss://red-cracaa5ds78s73cr8eq0:uIwNua8gEWPIvHb3J7uDIOOJC9MhHUAb@oregon-redis.render.com:6379'
-CELERY_IMPORTS = ['InstagramDjangoApp.tasks']
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = config('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND')
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_IMPORTS = config('CELERY_IMPORTS')
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+
+# CELERY_BROKER_URL = 'memory://'
+# CELERY_RESULT_BACKEND = 'memory://'
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+
+
 
 # Application definition
 

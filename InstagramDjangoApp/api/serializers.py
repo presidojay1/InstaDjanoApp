@@ -44,10 +44,16 @@ class InstagramAccountListSerializer(serializers.ModelSerializer):
 
 class InstagramAccountSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
+    followers = serializers.ListField(read_only=True)
+    total_followers = serializers.IntegerField(read_only=True)
+    following = serializers.ListField(read_only=True)
+    total_following = serializers.IntegerField(read_only=True)
+    last_updated = serializers.DateTimeField(read_only=True)
+
 
     class Meta:
         model = InstagramAccount
-        fields = ['id', 'username', 'password']
+        fields = ['id', 'username', 'password', 'followers', 'total_followers', 'following', 'total_following', 'last_updated']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -58,6 +64,9 @@ class InstagramAccountSerializer(serializers.ModelSerializer):
         return instagram_account
 
     def update(self, instance, validated_data):
+        for field in ['followers', 'total_followers', 'following', 'total_following', 'last_updated']:
+            validated_data.pop(field, None)
+
         if 'password' in validated_data:
             password = validated_data.pop('password')
             instance.password = password  # This will use the property setter to encrypt

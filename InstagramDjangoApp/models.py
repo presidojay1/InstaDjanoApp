@@ -4,6 +4,7 @@ import datetime
 from django.utils import timezone
 from cryptography.fernet import Fernet
 from django.conf import settings
+from instagrapi import Client
 
 UserModel = get_user_model()
 
@@ -11,8 +12,9 @@ UserModel = get_user_model()
 
 class ProfileManager(models.Manager):
     def valid_subscriptions(self):
-        return self.filter(subscription_end_date__gte=timezone.now().date())
+        return self.filter(subscription_end_date__gte=timezone.now())
     
+
 
 class Profile(models.Model):
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='profile')
@@ -21,8 +23,10 @@ class Profile(models.Model):
     number_of_ig_accounts = models.PositiveIntegerField(default=0)
     height = models.FloatField(null=True, blank=True) 
     stripe_customer_id = models.CharField(max_length=255, null=True, blank=True)
-    subscription_plan = models.CharField(max_length=50, choices=[('basic', 'Basic'), ('medium', 'Medium'), ('premium', 'Premium'), ('unsubscribed', 'Unsubscribed')], null=True, blank=True, default='unsubscribed')
-    subscription_end_date = models.DateField(null=True, blank=True)
+    subscription_plan = models.CharField(max_length=50, choices=[('free_trial', 'Free Trial'), ('basic', 'Basic'), ('medium', 'Medium'), ('premium', 'Premium'), ('unsubscribed', 'Unsubscribed')], null=True, blank=True, default='unsubscribed')
+    subscription_end_date = models.DateTimeField(null=True, blank=True)
+    trial_start_date = models.DateTimeField(null=True, blank=True)
+    
 
     objects = ProfileManager()
 
@@ -37,8 +41,27 @@ class Profile(models.Model):
     @property
     def subscription_is_valid(self):
         if self.subscription_end_date:
-            return timezone.now().date() <= self.subscription_end_date
+            return timezone.now() <= self.subscription_end_date
         return False
+    
+
+    @property
+    def is_trial(self):
+        return self.subscription_plan == 'free_trial'
+
+
+    @property
+    def trial_is_valid(self):
+        if self.trial_start_date:
+            return timezone.now() <= self.trial_start_date + timezone.timedelta(days=5)
+        return False
+
+    def start_free_trial(self):
+        self.subscription_plan = 'free_trial'
+        self.trial_start_date = timezone.now()
+        self.subscription_end_date = self.trial_start_date + timezone.timedelta(days=5)
+        self.save()
+
 
     def __str__(self):
         return f'{self.user.username} Profile'
@@ -58,6 +81,11 @@ class InstagramAccount(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='instagram_accounts')
     username = models.CharField(max_length=255)
     encrypted_password = models.BinaryField()
+    followers = models.JSONField(default=list)  # List of follower usernames
+    total_followers = models.IntegerField(default=0)
+    following = models.JSONField(default=list)  # List of following usernames
+    total_following = models.IntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
 
     @property
     def password(self):
@@ -73,4 +101,21 @@ class InstagramAccount(models.Model):
 
     def __str__(self):
         return f'{self.username} (Profile: {self.profile.user.username})'
+
+    def update_account_data(self):
+        bot = Client()
+        bot.login(self.username, self.password)
+
+        # Update followers
+        followers = bot.user_followers(bot.user_id)
+        self.followers = [user.username for user in followers.values()]
+        self.total_followers = len(self.followers)
+
+        # Update following
+        following = bot.user_following(bot.user_id)
+        self.following = [user.username for user in following.values()]
+        self.total_following = len(self.following)
+
+        self.last_updated = timezone.now()
+        self.save()
     

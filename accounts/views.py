@@ -54,12 +54,18 @@ class UserRegisteration(generics.CreateAPIView):
     def perform_create(self, serializer):
         referrer_id = self.request.query_params.get('ref')
         
+        # Only add referred_by if referrer_id is provided
         if referrer_id:
-            serializer.validated_data['referred_by'] = referrer_id
+            try:
+                # Ensure referrer exists
+                referrer = CustomUser.objects.get(referrer_id=referrer_id)
+                serializer.validated_data['referred_by'] = referrer
+            except CustomUser.DoesNotExist:
+                pass  # Referrer does not exist, don't add anything
+
 
         user = serializer.save(is_verified=False) 
         token = default_token_generator.make_token(user)
-        # send_verification_email(user.email, token='ccfqeb-762f22538682d6dffd48bfb59e4e1354')
           
         try:
             send_verification_email(user.email, token)

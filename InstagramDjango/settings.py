@@ -30,7 +30,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = True
 
 # ALLOWED_HOSTS = [*]
-ALLOWED_HOSTS = ['astrolemon.onrender.com' , 'localhost' , '127.0.0.1']
+ALLOWED_HOSTS = ['astrolemon.onrender.com' , 'localhost' , '127.0.0.1', '159.203.44.134', '*']
 
 AUTH_USER_MODEL = "accounts.CustomUser"
 
@@ -39,11 +39,22 @@ CLIENT_URL = config('CLIENT_URL')
 
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
+
     'perform-instagram-tasks-every-30-minutes': {
         'task': 'InstagramDjangoApp.tasks.schedule_instagram_tasks',  # Ensure this is correct
         # 'schedule': crontab(minute='*/30'),  # Every 30 minutes
         'schedule': crontab(minute=0, hour='*/12'),  # Every 12 hours
         # 'schedule': crontab(minute=0, hour=0),  # Every day at midnight
+    },
+
+    'check-expired-trials': {
+        'task': 'InstagramDjangoApp.tasks.check_expired_trials',
+        'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
+    },
+
+    'update-instagram-accounts-weekly': {
+        'task': 'InstagramDjangoApp.tasks.update_all_instagram_accounts',
+        'schedule': crontab(day_of_week=0, hour=0, minute=0),  # Run every Sunday at midnight
     },
 }
 
@@ -53,7 +64,10 @@ CELERY_BROKER_URL = config('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND')
 # CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_IMPORTS = config('CELERY_IMPORTS')
-
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
 
 # CELERY_BROKER_URL = 'memory://'
@@ -73,7 +87,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
-    'InstagramDjangoApp.apps.InstagramdjangoappConfig',
+    'InstagramDjangoApp',
     "rest_framework",
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',

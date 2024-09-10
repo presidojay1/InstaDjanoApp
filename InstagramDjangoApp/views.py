@@ -214,6 +214,70 @@ def list_referred_users(request):
     return Response(response_data)
 
 
+
+
+
+class StartFreeTrialView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        profile = request.user.profile
+        payment_method_id = request.data.get('payment_method_id')
+
+        if profile.subscription_plan != 'unsubscribed' or profile.trial_start_date:
+            return Response({
+                'status': 'error',
+                'message': 'User is not eligible for a free trial.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not payment_method_id:
+            return Response({
+                'status': 'error',
+                'message': 'Payment method is required to start a free trial.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Create a Stripe customer if not already created
+            if not profile.stripe_customer_id:
+                customer = stripe.Customer.create(
+                    email=request.user.email,
+                    name=request.user.username,
+                )
+                profile.stripe_customer_id = customer.id
+                profile.save()
+            else:
+                customer = stripe.Customer.retrieve(profile.stripe_customer_id)
+
+            # Attach the payment method to the customer
+            stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
+
+            # Set the default payment method for the customer
+            stripe.Customer.modify(
+                customer.id,
+                invoice_settings={
+                    'default_payment_method': payment_method_id,
+                },
+            )
+
+            # Start the free trial
+            profile.start_free_trial()
+
+            return Response({
+                'status': 'success',
+                'message': 'Free trial started successfully.',
+                'trial_end_date': profile.subscription_end_date.isoformat()
+            }, status=status.HTTP_200_OK)
+
+        except stripe.error.StripeError as e:
+            return Response({
+                'status': 'error',
+                'message': f'Failed to process payment information: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+            
+
 class ProfileCreateAPIView(generics.CreateAPIView):
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]

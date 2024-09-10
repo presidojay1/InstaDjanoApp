@@ -27,7 +27,7 @@ import json
 import datetime
 import requests
 from decimal import Decimal, InvalidOperation
-
+from django.db import transaction
 import stripe
 from instagrapi import Client
 
@@ -336,10 +336,43 @@ class InstagramAccountCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instagram_account = serializer.save(profile=profile)
-        profile.number_of_ig_accounts += 1
-        profile.save()
+
+        try:
+            with transaction.atomic():
+                instagram_account = serializer.save(profile=profile)
+                
+                # Attempt to update the account data immediately after creation
+                try:
+                    instagram_account.update_account_data()
+                except Exception as e:
+                    # Log the error (you might want to use proper logging here)
+                    print(f"Error updating account data: {str(e)}")
+                    # You can choose to add a message to the response
+                    error_message = "Account created successfully, but initial data fetch failed. Data will be updated in the next scheduled update."
+                else:
+                    error_message = None
+
+                profile.number_of_ig_accounts += 1
+                profile.save()
+
+        except Exception as e:
+            # If any other error occurs during the process
+            return Response(
+                {"error": "Failed to create Instagram account", "detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        response_data = InstagramAccountSerializer(instagram_account).data
+
+        if error_message:
+            response_data['warning'] = error_message
+
+        # instagram_account = serializer.save(profile=profile)
+        # instagram_account.update_account_data()
+        # profile.number_of_ig_accounts += 1
+        # profile.save()
         # headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)#, headers=headers)
+        return Response(response_data, status=status.HTTP_201_CREATED)#, headers=headers)
 
 
 class InstagramAccountListView(generics.ListAPIView):

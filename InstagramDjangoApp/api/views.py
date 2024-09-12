@@ -182,13 +182,26 @@ def get_plan_details(plan_id):
 @api_view(['POST'])
 def subscribe_to_plan(request):
     user = UserModel.objects.get(id=request.data.get('user_id'))
-    plan = request.data.get('plan')
+    plan = request.data.get('plan').lower()  # Convert to lowercase for consistency
     payment_method_id = request.data.get('payment_method_id')
     profile = user.profile
 
     try:
-        # Retrieve Stripe plan details
-        stripe_plan = stripe.Plan.retrieve(settings.STRIPE_PLAN_IDS[plan])
+        # Define plan mapping based on request
+        stripe_plan_ids = {
+            'basic': settings.STRIPE_PLAN_IDS_BASIC,
+            'medium': settings.STRIPE_PLAN_IDS_MEDIUM,
+            'premium': settings.STRIPE_PLAN_IDS_PREMIUM
+        }
+
+        # Get the appropriate Stripe plan ID based on the requested plan
+        stripe_plan_id = stripe_plan_ids.get(plan)
+        
+        if not stripe_plan_id:
+            return Response({'status': 'Invalid plan selected'}, status=400)
+
+        # Retrieve Stripe plan details using the selected plan ID
+        stripe_plan = stripe.Plan.retrieve(stripe_plan_id)
         amount = Decimal(stripe_plan['amount']) / 100  # Convert from cents to dollars
 
         # Create a Stripe customer if not already created
@@ -202,13 +215,7 @@ def subscribe_to_plan(request):
         else:
             customer = stripe.Customer.retrieve(profile.stripe_customer_id)
 
-        # Use a test token to create a PaymentMethod
-        # payment_method = stripe.PaymentMethod.create(
-        #     type="card",
-        #     card={
-        #         "token": "tok_visa",  # Use a Stripe-provided test token for Visa
-        #     },
-        # )
+        # Attach payment method
         stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
 
         # Set the default payment method for the customer
@@ -222,8 +229,8 @@ def subscribe_to_plan(request):
         # Create a subscription
         subscription = stripe.Subscription.create(
             customer=customer.id,
-            items=[{'plan': settings.STRIPE_PLAN_IDS[plan]}],
-            default_payment_method=payment_method_id  # Set the test payment method as default
+            items=[{'plan': stripe_plan_id}],
+            default_payment_method=payment_method_id
         )
 
         # Update the user's subscription plan and end date
@@ -231,6 +238,7 @@ def subscribe_to_plan(request):
         profile.subscription_end_date = datetime.date.today() + datetime.timedelta(days=30)
         profile.save()
 
+        # Log payment in payment history
         PaymentHistory.objects.create(
             profile=profile,
             amount=amount,

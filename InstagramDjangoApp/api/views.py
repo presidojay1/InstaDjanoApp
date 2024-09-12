@@ -251,6 +251,90 @@ def subscribe_to_plan(request):
     except stripe.error.StripeError as e:
         return Response({'status': 'Subscription failed', 'message': str(e)}, status=400)
 
+
+
+@api_view(['POST'])
+def subscribe_to_plan_Test(request):
+    user = UserModel.objects.get(id=request.data.get('user_id'))
+    profile = user.profile
+
+    plan = request.data.get('plan').lower()  # Convert to lowercase for consistency
+    profile = user.profile
+
+    try:
+        # Define plan mapping based on request
+        stripe_plan_ids = {
+            'basic': settings.STRIPE_PLAN_IDS_BASIC,
+            'medium': settings.STRIPE_PLAN_IDS_MEDIUM,
+            'premium': settings.STRIPE_PLAN_IDS_PREMIUM
+        }
+
+        # Get the appropriate Stripe plan ID based on the requested plan
+        stripe_plan_id = stripe_plan_ids.get(plan)
+        
+        if not stripe_plan_id:
+            return Response({'status': 'Invalid plan selected'}, status=400)
+
+        stripe_plan = stripe.Plan.retrieve(stripe_plan_id)
+        amount = Decimal(stripe_plan['amount']) / 100  # Convert from cents to dollars
+
+
+        # Create a Stripe customer if not already created
+        if not profile.stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=user.email,
+                name=user.username,
+            )
+            profile.stripe_customer_id = customer.id
+            profile.save()
+        else:
+            customer = stripe.Customer.retrieve(profile.stripe_customer_id)
+
+        # Use a test token to create a PaymentMethod
+        payment_method_id = stripe.PaymentMethod.create(
+            type="card",
+            card={
+                "token": "tok_visa",  # Use a Stripe-provided test token for Visa
+            },
+        )
+        stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
+
+        # Set the default payment method for the customer
+        stripe.Customer.modify(
+            customer.id,
+            invoice_settings={
+                'default_payment_method': payment_method_id,
+            },
+        )
+
+        # Create a subscription
+        subscription = stripe.Subscription.create(
+            customer=customer.id,
+            items=[{'plan': stripe_plan_id}],
+            default_payment_method=payment_method_id  # Set the test payment method as default
+        )
+
+        # Update the user's subscription plan and end date
+        profile.subscription_plan = plan
+        profile.subscription_end_date = datetime.date.today() + datetime.timedelta(days=30)
+        profile.save()
+
+        PaymentHistory.objects.create(
+            profile=profile,
+            amount=amount,
+            description=f'{plan.capitalize()} Plan Subscription',
+            reference=subscription['id'],  # Save the subscription ID as a reference
+        )
+
+        return Response({'status': 'Subscription successful', 'subscription_id': subscription['id']}, status=201)
+
+    except stripe.error.StripeError as e:
+        return Response({'status': 'Subscription failed', 'message': str(e)}, status=400)
+
+
+
+
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response

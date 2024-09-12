@@ -13,6 +13,7 @@ urlpatterns = [
   #   path('profile/update/<str:identifier>/', update_profile, name='update_profile'),
   # path('profile/delete/<str:identifier>/', delete_profile, name='delete_profile_by_identifier'),
    path('subscribe/', subscribe_to_plan, name='subscribe_to_plan'),
+   path('subscribeTest/', subscribe_to_plan_Test, name='subscribe_to_plan_Test'),
     path('payment_history/<str:identifier>/', payments_history, name='payment_history_by_identifier'),
     path('instagram-accounts/', InstagramAccountListView.as_view(), name='instagram-account-list'),
     path('instagram-accounts/create/', InstagramAccountCreateView.as_view(), name='instagram-account-create'),

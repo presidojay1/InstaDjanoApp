@@ -44,51 +44,82 @@ def list_referred_users(request):
     ]
     return Response(referrals_data)
 
+from rest_framework.parsers import JSONParser
+from django.http import QueryDict
 
-
-class UserRegisteration(generics.CreateAPIView):
+class UserRegistration(generics.CreateAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [AllowAny]
+    parser_classes = [JSONParser]
 
     @transaction.atomic
     def perform_create(self, serializer):
-        referrer_id = self.request.query_params.get('ref')
-        
-        # Only add referred_by if referrer_id is provided
-        if referrer_id:
-            try:
-                # Ensure referrer exists
-                referrer = CustomUser.objects.get(referrer_id=referrer_id)
-                serializer.validated_data['referred_by'] = referrer
-            except CustomUser.DoesNotExist:
-                pass  # Referrer does not exist, don't add anything
-
-
-        user = serializer.save(is_verified=False) 
+        user = serializer.save(is_verified=False)
         token = default_token_generator.make_token(user)
-          
         try:
             send_verification_email(user.email, token)
         except Exception as e:
-                # If an error occurs during email sending, rollback the transaction
+            # If an error occurs during email sending, rollback the transaction
             user.delete()
             message = "There was an error with sending the registration email. Please try registering again."
             raise APIException(detail=message, code=status.HTTP_400_BAD_REQUEST)
-        
-        if user.referred_by:
-            pass  # Handle successful referral
-        
+
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                name='ref', 
-                description='Referrer ID',
-                required=False, 
+                name='ref',
+                description='Referrer username',
+                required=False,
                 type=str
             )
         ]
     )
     def post(self, request, *args, **kwargs):
+        referrer_username = request.query_params.get('ref')
+        
+        # Create a mutable copy of the request data
+        mutable_data = request.data.copy() if isinstance(request.data, QueryDict) else request.data
+
+        if referrer_username:
+            mutable_data['referred_by'] = referrer_username
+        
+        # Use the mutable data to create the serializer
+        serializer = self.get_serializer(data=mutable_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+class User1Registration(generics.CreateAPIView):
+    serializer_class = CustomUserSerializer
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        user = serializer.save(is_verified=False)
+        token = default_token_generator.make_token(user)
+        try:
+            send_verification_email(user.email, token)
+        except Exception as e:
+            # If an error occurs during email sending, rollback the transaction
+            user.delete()
+            message = "There was an error with sending the registration email. Please try registering again."
+            raise APIException(detail=message, code=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='ref',
+                description='Referrer username',
+                required=False,
+                type=str
+            )
+        ]
+    )
+    def post(self, request, *args, **kwargs):
+        referrer_username = request.query_params.get('ref')
+        if referrer_username:
+            request.data['referred_by'] = referrer_username
         return super().post(request, *args, **kwargs)
 
     # def get_serializer(self):
@@ -300,5 +331,5 @@ class ChangePasswordView(GenericAPIView, UpdateModelMixin):
 @permission_classes([IsAuthenticated])
 def get_referral_link(request):
     user = request.user
-    referral_link = request.build_absolute_uri(reverse('register') + f'?ref={user.referrer_id}')
+    referral_link = request.build_absolute_uri(reverse('register') + f'?ref={user.username}')
     return Response({'referral_link': referral_link})

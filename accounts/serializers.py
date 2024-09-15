@@ -4,37 +4,42 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator
+from InstagramDjangoApp.models import Profile
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    referrer_id = serializers.UUIDField(read_only=True)
-    referred_by = serializers.UUIDField(write_only=True, required=False)
+    referred_by = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'username', 'last_name', 'email', 'password', 'phone_no', 'referrer_id', 'referred_by']
+        fields = ['id', 'first_name', 'username', 'last_name', 'email', 'password', 'phone_no', 'referred_by']
+        read_only_fields = ['id'] 
 
     def validate_email(self, value):
-        """
-        Check if the email already exists.
-        """
         if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
 
+    def validate_username(self, value):
+        if CustomUser.objects.filter(username=value).exists():
+            raise serializers.ValidationError("A user with this username already exists.")
+        return value
+
     def create(self, validated_data):
-        referred_by_id = validated_data.pop('referred_by', None)
+        referred_by_username = validated_data.pop('referred_by', None)
         user = CustomUser.objects.create_user(**validated_data)
-        
-        if referred_by_id:
+        if referred_by_username:
             try:
-                referrer = CustomUser.objects.get(referrer_id=referred_by_id)
+                referrer = CustomUser.objects.get(username=referred_by_username)
                 user.referred_by = referrer
                 user.save()
             except CustomUser.DoesNotExist:
                 pass  # If the referrer doesn't exist, we just ignore it
-
+        
+        # Create user profile
+        Profile.objects.create(user=user)
+        
         return user
 
 

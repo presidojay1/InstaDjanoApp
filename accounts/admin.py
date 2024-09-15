@@ -9,10 +9,10 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('is_active', 'is_staff', 'is_superuser', 'is_verified', 'date_joined')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'phone_no')
     ordering = ('email',)
-    readonly_fields = ('referrer_id',)
+    # readonly_fields = ('referrer_id',)
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal Info', {'fields': ( 'username', 'first_name', 'last_name', 'phone_no', 'referrer_id','referred_by')}),
+        ('Personal Info', {'fields': ( 'username', 'first_name', 'last_name', 'phone_no','referred_by')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_verified', 'is_superuser')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )

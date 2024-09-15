@@ -9,7 +9,7 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     
-    path('register/', views.UserRegisteration.as_view(),name='register'),
+    path('register/', views.UserRegistration.as_view(),name='register'),
     # path('register?ref=<str:referrer_id>', views.UserRegisteration.as_view(),name='register'),
     path('user/update/', views.UserUpdateView.as_view(), name='user-update'),
     path('resend-verification/', views.ResendVerificationLinkView.as_view(), name='resend-verification'),

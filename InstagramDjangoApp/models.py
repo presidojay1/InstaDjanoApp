@@ -81,11 +81,34 @@ class InstagramAccount(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='instagram_accounts')
     username = models.CharField(max_length=255)
     encrypted_password = models.BinaryField()
+    is_business_account = models.BooleanField(default=False)
     followers = models.JSONField(default=list)  # List of follower usernames
     total_followers = models.IntegerField(default=0)
     following = models.JSONField(default=list)  # List of following usernames
     total_following = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
+
+    followers_1_day_ago = models.IntegerField(default=0)
+    followers_2_days_ago = models.IntegerField(default=0)
+    followers_3_days_ago = models.IntegerField(default=0)
+
+    following_1_day_ago = models.IntegerField(default=0)
+    following_2_days_ago = models.IntegerField(default=0)
+    following_3_days_ago = models.IntegerField(default=0)
+
+    # Account Insights
+    reach_count = models.IntegerField(default=0)
+    impression_count = models.IntegerField(default=0)
+    profile_views = models.IntegerField(default=0)
+    website_clicks = models.IntegerField(default=0)
+
+    # Media Insights (aggregate data for the last week)
+    media_reach_count = models.IntegerField(default=0)
+    media_like_count = models.IntegerField(default=0)
+    media_comment_count = models.IntegerField(default=0)
+    media_save_count = models.IntegerField(default=0)
+    media_share_count = models.IntegerField(default=0)
+    media_impression_count = models.IntegerField(default=0)
 
     @property
     def password(self):
@@ -115,6 +138,68 @@ class InstagramAccount(models.Model):
         following = bot.user_following(bot.user_id)
         self.following = [user.username for user in following.values()]
         self.total_following = len(self.following)
+
+        self.followers_3_days_ago = self.followers_2_days_ago
+        self.followers_2_days_ago = self.followers_1_day_ago
+        self.followers_1_day_ago = self.total_followers
+
+        self.following_3_days_ago = self.following_2_days_ago
+        self.following_2_days_ago = self.following_1_day_ago
+        self.following_1_day_ago = self.total_following
+
+        try:
+            # Try to fetch business account insights
+            account_insights = bot.insights_account()
+            self.is_business_account = True
+
+            metrics = account_insights.get('data', {}).get('user', {}).get('business_manager', {}).get('account_summary', {}).get('metric_graph', {}).get('nodes', [])
+            
+            for metric in metrics:
+                metric_name = metric.get('metric')
+                metric_value = metric.get('metric_value')
+                
+                if metric_name == 'reach':
+                    self.reach_count = int(metric_value)
+                elif metric_name == 'impressions':
+                    self.impression_count = int(metric_value)
+                elif metric_name == 'profile_views':
+                    self.profile_views = int(metric_value)
+                elif metric_name == 'website_clicks':
+                    self.website_clicks = int(metric_value)
+
+            # self.reach_count = account_insights.get('reach_count', 0)
+            # self.impression_count = account_insights.get('impression_count', 0)
+            # self.profile_views = account_insights.get('profile_view_count', 0)
+            # self.website_clicks = account_insights.get('website_clicks', 0)
+
+            # Update media insights (for the last week)
+            media_insights = bot.insights_media_feed_all(
+                post_type="ALL",
+                time_frame="ONE_WEEK",
+                data_ordering="REACH_COUNT"
+            )
+
+            self.media_reach_count = sum(media.get('reach_count', 0) for media in media_insights)
+            self.media_like_count = sum(media.get('like_count', 0) for media in media_insights)
+            self.media_comment_count = sum(media.get('comment_count', 0) for media in media_insights)
+            self.media_save_count = sum(media.get('save_count', 0) for media in media_insights)
+            self.media_share_count = sum(media.get('share_count', 0) for media in media_insights)
+            self.media_impression_count = sum(media.get('impression_count', 0) for media in media_insights)
+
+        except UserError as e:
+            # If it's not a business account
+            self.is_business_account = False
+            self.reach_count = 0
+            self.impression_count = 0
+            self.profile_views = 0
+            self.website_clicks = 0
+            self.media_reach_count = 0
+            self.media_like_count = 0
+            self.media_comment_count = 0
+            self.media_save_count = 0
+            self.media_share_count = 0
+            self.media_impression_count = 0
+
 
         self.last_updated = timezone.now()
         self.save()

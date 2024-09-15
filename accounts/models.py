@@ -10,11 +10,10 @@ from django.urls import reverse
 class CustomUser(AbstractBaseUser,PermissionsMixin):
 
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=100, null=True)
+    username = models.CharField(max_length=100, unique=True)
     first_name = models.CharField(max_length=100, null=True)
     last_name = models.CharField(max_length=100,null=True) 
     phone_no = models.CharField(max_length=100,null=True,blank=True)
-    referrer_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='referrals')
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -32,7 +31,7 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
         """
         Returns the referral link for the user.
         """
-        return reverse('register') + f'?ref={self.referrer_id}'
+        return reverse('register') + f'?ref={self.username}'
 
 
     def __str__(self):

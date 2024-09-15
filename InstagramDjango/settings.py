@@ -26,6 +26,8 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 
 # CLIENT_URL = 'http://127.0.0.1:8000'
 CLIENT_URL = config('CLIENT_URL')
+FCLIENT_URL = config('FCLIENT_URL')
+
 
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
@@ -41,7 +43,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'update-instagram-accounts-weekly': {
         'task': 'InstagramDjangoApp.tasks.update_all_instagram_accounts',
-        'schedule': crontab(day_of_week=0, hour=0, minute=0),  # Run every Sunday at midnight
+        'schedule': crontab(hour=0, minute=0),  # Run every day at midnight
     },
 }
 

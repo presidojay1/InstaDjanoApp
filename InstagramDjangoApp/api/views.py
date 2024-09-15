@@ -466,17 +466,17 @@ class InstagramAccountCreateView(generics.CreateAPIView):
         # headers = self.get_success_headers(serializer.data)
         return Response(response_data, status=status.HTTP_201_CREATED)#, headers=headers)
 
-
-class InstagramAccountListView(generics.ListAPIView):
-    serializer_class = InstagramAccountListSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    @extend_schema(
+@extend_schema(
         parameters=[
             OpenApiParameter(name='all', description='Return all Instagram accounts (superusers only)', required=False, type=bool)
         ],
         responses={200: InstagramAccountListSerializer(many=True)}
     )
+class InstagramAccountListView(generics.ListAPIView):
+    serializer_class = InstagramAccountListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    
     def get_queryset(self):
         user = self.request.user
         all_accounts = self.request.query_params.get('all', 'false').lower() == 'true'
@@ -486,19 +486,31 @@ class InstagramAccountListView(generics.ListAPIView):
         return InstagramAccount.objects.filter(profile=user.profile)
 
 class InstagramAccountDetailView(generics.RetrieveAPIView):
-    serializer_class = InstagramAccountListSerializer
+    serializer_class = InstagramAccountSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:  
+            return InstagramAccount.objects.all()  
+        else:
+            return InstagramAccount.objects.filter(profile=user.profile) 
+
         return InstagramAccount.objects.filter(profile=self.request.user.profile)
+        
 
 class InstagramAccountDeleteView(generics.DestroyAPIView):
     serializer_class = InstagramAccountListSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return InstagramAccount.objects.filter(profile=self.request.user.profile)
+        user = self.request.user
+        if user.is_superuser:  
+            return InstagramAccount.objects.all()  
+        else:
+            return InstagramAccount.objects.filter(profile=user.profile) 
 
+            
     def perform_destroy(self, instance):
         profile = instance.profile
         instance.delete()

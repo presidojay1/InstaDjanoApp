@@ -50,11 +50,11 @@ class InstagramAccountSerializer(serializers.ModelSerializer):
     total_following = serializers.IntegerField(read_only=True)
     last_updated = serializers.DateTimeField(read_only=True)
 
-
     class Meta:
         model = InstagramAccount
-        fields = ['id', 'username', 'password', 'followers', 'total_followers', 'following', 'total_following', 'last_updated']
+        fields = ['id', 'username', 'password', 'followers', 'is_business_account', 'total_followers', 'following', 'total_following', 'last_updated', 'reach_count', 'impression_count', 'profile_views', 'website_clicks','media_reach_count', 'media_like_count', 'media_comment_count','media_save_count', 'media_share_count', 'media_impression_count']
         extra_kwargs = {'password': {'write_only': True}}
+        read_only_fields = ['is_business_account','reach_count', 'impression_count', 'profile_views', 'website_clicks','media_reach_count', 'media_like_count', 'media_comment_count','media_save_count', 'media_share_count', 'media_impression_count']
 
     def create(self, validated_data):
         password = validated_data.pop('password')

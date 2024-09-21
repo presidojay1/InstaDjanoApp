@@ -5,6 +5,7 @@ from django.utils import timezone
 from cryptography.fernet import Fernet
 from django.conf import settings
 from instagrapi import Client
+from instagrapi.mixins.insights import UserError
 
 UserModel = get_user_model()
 
@@ -36,7 +37,7 @@ class Profile(models.Model):
 
     @property
     def user_id(self):
-        return self.user.id
+        return self.user.id # type: ignore
 
     @property
     def subscription_is_valid(self):
@@ -130,12 +131,12 @@ class InstagramAccount(models.Model):
         bot.login(self.username, self.password)
 
         # Update followers
-        followers = bot.user_followers(bot.user_id)
+        followers = bot.user_followers(bot.user_id) # type: ignore
         self.followers = [user.username for user in followers.values()]
         self.total_followers = len(self.followers)
 
         # Update following
-        following = bot.user_following(bot.user_id)
+        following = bot.user_following(bot.user_id) # type: ignore
         self.following = [user.username for user in following.values()]
         self.total_following = len(self.following)
 
